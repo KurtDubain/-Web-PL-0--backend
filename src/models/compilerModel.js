@@ -3,6 +3,7 @@ import intermediateCodeGenerator from '../utils/intermediateCodeGeneration';
 import lexicalAnalyzer from '../utils/lexicalAnalysis'
 import semanticAnalyzer from '../utils/semanticAnalysis';
 import syntaxAnalyzer from '../utils/syntaxAnalysis';
+import generateTargetCode from '../utils/targetCodeGeneration';
 
 const compilerModel = {
     async compileCode(code, options) {
@@ -71,17 +72,18 @@ const compilerModel = {
     // 中间代码生成实现
     async performIntermediateCodeGeneration(code) {
       console.log('Performing Intermediate Code Generation');
-      const tokens = await this.performLexicalAnalysis(code);
-      const syntaxTree = await this.performSyntaxAnalysis(tokens);
+      const syntaxTree = await this.performSyntaxAnalysis(code);
       const intermediateCode = intermediateCodeGenerator.generateIntermediateCode(syntaxTree);
       return intermediateCode;
     },
     
     // 目标代码生成实现
     async performTargetCodeGeneration(code) {
-      console.log('Performing Target Code Generation');
-      // Implement Target Code Generation logic here
-      return 'Target code generation result';
+      console.log('Performing Intermediate Code Generation');
+      const intermediateCode = await this.performIntermediateCodeGeneration(code)
+      const targetCode = generateTargetCode(intermediateCode);
+
+      return targetCode;
     },
    
   };
