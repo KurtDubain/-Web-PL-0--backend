@@ -1,37 +1,36 @@
 // src/models/complierModel.js
-import intermediateCodeGenerator from '../utils/intermediateCodeGeneration';
-import lexicalAnalyzer from '../utils/lexicalAnalysis'
-import semanticAnalyzer from '../utils/semanticAnalysis';
-import syntaxAnalyzer from '../utils/syntaxAnalysis';
-import generateTargetCode from '../utils/targetCodeGeneration';
-
+const intermediateCodeGenerator = require('../utils/intermediateCodeGeneration')
+const lexicalAnalyzer = require('../utils/lexicalAnalysis')
+const semanticAnalyzer = require('../utils/semanticAnalysis')
+const syntaxAnalyzer = require('../utils/syntaxAnalysis')
+const generateTargetCode = require('../utils/targetCodeGeneration')
 const compilerModel = {
     async compileCode(code, options) {
       const result = {};
-  
+      console.log(options)
       // Lexical analysis词法分析
-      if (options['Lexical analysis']) {
-        result['Lexical analysis'] = await this.performLexicalAnalysis(code);
+      if (options['LexicalAnalysis']) {
+        result['LexicalAnalysis'] = await this.performLexicalAnalysis(code);
       }
   
       // Syntax analysis语法分析
-      if (options['Syntax analysis']) {
-        result['Syntax analysis'] = await this.performSyntaxAnalysis(code);
+      if (options['SyntaxAnalysis']) {
+        result['SyntaxAnalysis'] = await this.performSyntaxAnalysis(code);
       }
   
       // Semantic analysis语义分析
-      if (options['Semantic analysis']) {
-        result['Semantic analysis'] = await this.performSemanticAnalysis(code);
+      if (options['SemanticAnalysis']) {
+        result['SemanticAnalysis'] = await this.performSemanticAnalysis(code);
       }
   
       // Intermediate code generation中间代码生成
-      if (options['Intermediate code generation']) {
-        result['Intermediate code generation'] = await this.performIntermediateCodeGeneration(code);
+      if (options['IntermediateCodeGeneration']) {
+        result['IntermediateCodeGeneration'] = await this.performIntermediateCodeGeneration(code);
       }
   
       // Target code generation目标代码生成
-      if (options['Target code generation']) {
-        result['Target code generation'] = await this.performTargetCodeGeneration(code);
+      if (options['TargetCodeGeneration']) {
+        result['TargetCodeGeneration'] = await this.performTargetCodeGeneration(code);
       }
       return result;
     },
