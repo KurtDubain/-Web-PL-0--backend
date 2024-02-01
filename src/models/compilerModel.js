@@ -1,4 +1,5 @@
 // src/models/complierModel.js
+import lexicalAnalyzer from '../utils/lexicalAnalysis'
 
 const compilerModel = {
     async compileCode(code, options) {
@@ -45,8 +46,9 @@ const compilerModel = {
     // 词法分析实现
     async performLexicalAnalysis(code) {
       console.log('Performing Lexical Analysis');
+      const result = lexicalAnalyzer.analyze(code)
       // Implement Lexical Analysis logic here
-      return 'Lexical analysis result';
+      return result;
     },
     // 语法分析实现
     async performSyntaxAnalysis(code) {
