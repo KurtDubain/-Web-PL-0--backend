@@ -1,4 +1,4 @@
-// targetCodeGenerator.js
+// 目标代码生成
 
 const generateTargetCode = (intermediateCode) => {
     const targetCode = [];

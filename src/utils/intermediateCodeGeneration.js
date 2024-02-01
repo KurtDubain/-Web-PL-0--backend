@@ -1,4 +1,4 @@
-// src/utils/intermediateCodeGenerator.js
+// 中间代码生成
 
 const intermediateCodeGenerator = {
     generateIntermediateCode: function (ast) {

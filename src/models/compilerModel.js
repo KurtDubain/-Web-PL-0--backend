@@ -38,13 +38,13 @@ const compilerModel = {
   
     // 词法分析实现
     async performLexicalAnalysis(code) {
-      console.log('Performing Lexical Analysis');
+      console.log('词法分析开始了');
       const token = lexicalAnalyzer.analyze(code)
       return token;
     },
     // 语法分析实现
     async performSyntaxAnalysis(code) {
-      console.log('Performing Syntax Analysis');
+      console.log('语法分析开始了');
         // 将 PL/0 代码解析成 token 数组
         const tokens = await this.performLexicalAnalysis(code);
         try {
@@ -52,26 +52,26 @@ const compilerModel = {
           syntaxAnalyzer.analyze(tokens);
           return syntaxAnalyzer.analysisResult;
         } catch (error) {
-          console.error(`Syntax Analysis Error: ${error.message}`);
-          return `Syntax Analysis Error: ${error.message}`;
+          console.error(`语法分析出错了: ${error.message}`);
+          return `语法分析错误: ${error.message}`;
         }
     },
     // 语义分析实现
     async performSemanticAnalysis(code) {
-      console.log('Performing Semantic Analysis');
+      console.log('语义分析开始了');
       const tokens = await this.performLexicalAnalysis(code);
         try {
           // 使用语法分析器进行语法分析
           semanticAnalyzer.analyze(tokens);
           return semanticAnalyzer.analysisResult;
         } catch (error) {
-          console.error(`Syntax Analysis Error: ${error.message}`);
-          return `Syntax Analysis Error: ${error.message}`;
+          console.error(`语义分析出错了: ${error.message}`);
+          return `语义分析错误: ${error.message}`;
         }
     },
     // 中间代码生成实现
     async performIntermediateCodeGeneration(code) {
-      console.log('Performing Intermediate Code Generation');
+      console.log('中间代码生成开始了');
       const syntaxTree = await this.performSyntaxAnalysis(code);
       const intermediateCode = intermediateCodeGenerator.generateIntermediateCode(syntaxTree);
       return intermediateCode;
@@ -79,7 +79,7 @@ const compilerModel = {
     
     // 目标代码生成实现
     async performTargetCodeGeneration(code) {
-      console.log('Performing Intermediate Code Generation');
+      console.log('目标代码生成开始了');
       const intermediateCode = await this.performIntermediateCodeGeneration(code)
       const targetCode = generateTargetCode(intermediateCode);
 

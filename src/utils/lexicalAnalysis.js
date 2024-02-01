@@ -1,4 +1,4 @@
-// src/utils/lexAnalyzer.js
+// 词法分析
 
 const lexAnalyzer = {
     analyze: function (code) {

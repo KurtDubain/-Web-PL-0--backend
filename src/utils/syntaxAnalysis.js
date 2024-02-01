@@ -1,4 +1,4 @@
-// src/utils/syntaxAnalyzer.js
+// 语法分析
 
 const syntaxAnalyzer = {
     tokens: [],

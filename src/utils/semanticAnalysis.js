@@ -1,4 +1,4 @@
-// src/utils/semanticAnalyzer.js
+// 语义分析
 
 const semanticAnalyzer = {
     analysisResult: {
