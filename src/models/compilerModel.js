@@ -1,5 +1,6 @@
 // src/models/complierModel.js
 import lexicalAnalyzer from '../utils/lexicalAnalysis'
+import semanticAnalyzer from '../utils/semanticAnalysis';
 import syntaxAnalyzer from '../utils/syntaxAnalysis';
 
 const compilerModel = {
@@ -53,29 +54,29 @@ const compilerModel = {
     // 语法分析实现
     async performSyntaxAnalysis(code) {
       console.log('Performing Syntax Analysis');
-    
-        console.log('Performing Syntax Analysis');
-        
         // 将 PL/0 代码解析成 token 数组
         const tokens = await this.performLexicalAnalysis(code);
-    
         try {
           // 使用语法分析器进行语法分析
           syntaxAnalyzer.analyze(tokens);
-          
           return syntaxAnalyzer.analysisResult;
         } catch (error) {
           console.error(`Syntax Analysis Error: ${error.message}`);
           return `Syntax Analysis Error: ${error.message}`;
         }
-    
-      return 'Syntax analysis result';
     },
     // 语义分析实现
     async performSemanticAnalysis(code) {
       console.log('Performing Semantic Analysis');
-      // Implement Semantic Analysis logic here
-      return 'Semantic analysis result';
+      const tokens = await this.performLexicalAnalysis(code);
+        try {
+          // 使用语法分析器进行语法分析
+          semanticAnalyzer.analyze(tokens);
+          return semanticAnalyzer.analysisResult;
+        } catch (error) {
+          console.error(`Syntax Analysis Error: ${error.message}`);
+          return `Syntax Analysis Error: ${error.message}`;
+        }
     },
     // 中间代码生成实现
     async performIntermediateCodeGeneration(code) {
