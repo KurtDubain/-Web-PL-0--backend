@@ -4,22 +4,22 @@ const syntaxAnalyzer = {
     tokens: [],
     currentTokenIndex: 0,
     currentToken: null,
-    analysisResult: '', // 新增保存语法分析结果的属性
+    analysisResult: null, // 新增保存语法分析结果的属性
   
     analyze: function (tokens) {
-      this.tokens = tokens;
-      this.currentTokenIndex = 0;
-      this.currentToken = this.tokens[0];
-  
-      // PL/0 语法规则的递归下降解析
-      this.program();
-  
-      // 如果解析完毕后还有剩余的 token，则说明语法有误
-      if (this.currentTokenIndex < this.tokens.length) {
-        throw new Error(`Unexpected token: ${this.currentToken.value}`);
-      }
-  
-      console.log('Syntax analysis completed successfully.');
+        this.tokens = tokens;
+        this.currentTokenIndex = 0;
+        this.currentToken = this.tokens[0];
+
+        // PL/0 语法规则的递归下降解析
+        this.analysisResult = this.program(); // 将根节点保存为语法分析结果
+
+        // 如果解析完毕后还有剩余的 token，则说明语法有误
+        if (this.currentTokenIndex < this.tokens.length) {
+            throw new Error(`Unexpected token: ${this.currentToken.value}`);
+        }
+
+        console.log('Syntax analysis completed successfully.');
     },
   
     match: function (expectedType) {
@@ -38,28 +38,30 @@ const syntaxAnalyzer = {
     },
   
     program: function () {
-      console.log('Starting Program');
-      this.analysisResult += 'Starting Program\n';
-      this.block();
-      this.match('Symbol'); // Program 结束时应该是符号结束
+        console.log('Starting Program');
+        const programNode = { type: 'Program', children: [this.block()] };
+        this.match('Symbol'); // Program 结束时应该是符号结束
+        return programNode;
     },
   
     block: function () {
-      console.log('Starting Block');
-      this.analysisResult += 'Starting Block\n';
-      this.declaration();
-      this.statement();
+        console.log('Starting Block');
+        const blockNode = { type: 'Block', children: [this.declaration(), this.statement()] };
+        return blockNode;
     },
   
     declaration: function () {
         console.log('Starting Declaration');
-        this.analysisResult += 'Starting Declaration\n';
+        const declarationNode = { type: 'Declaration', children: [] };
         while (this.currentToken.type === 'Keyword' && this.currentToken.value === 'var') {
-          this.match('Keyword');
-          this.match('Identifier');
-          this.match('Symbol'); // 分号结束
+            this.match('Keyword');
+            const identifierNode = { type: 'Identifier', value: this.currentToken.value };
+            this.match('Identifier');
+            declarationNode.children.push(identifierNode);
+            this.match('Symbol'); // 分号结束
         }
-      },
+        return declarationNode;
+    },
       
       statement: function () {
         console.log('Starting Statement');
