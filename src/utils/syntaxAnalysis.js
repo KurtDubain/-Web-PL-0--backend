@@ -43,11 +43,20 @@ const syntaxAnalyzer = {
   },
   // Program规则的解析函数
   program: function () {
-      console.log('Starting Program');
-      const programNode = { type: 'Program', children: [this.block()] };
-      this.match('Semicolon'); // Program 结束时应该是分号结束
-      return programNode;
-  },
+    console.log('Starting Program');
+    const programNode = { type: 'Program', children: [this.block()] };
+
+    // 允许程序中有多个 block，只要每个 block 后面都有分号
+    while (this.currentToken.type === 'Semicolon') {
+        this.match('Semicolon'); // 匹配分号
+        programNode.children.push(this.block());
+    }
+    console.log(1)
+    // Program 结束时应该是分号结束
+    this.match('Semicolon');
+
+    return programNode;
+},
   // 对于block规则的解析函数
   block: function () {
       console.log('Starting Block');
@@ -83,7 +92,7 @@ const syntaxAnalyzer = {
                     break; // 没有逗号，结束循环
                 }
             } while (true);
-
+            console.log(2)
             this.match('Semicolon'); // 分号结束
         }
 
@@ -120,6 +129,7 @@ const syntaxAnalyzer = {
       this.match('Identifier');
       this.match('Equals'); // 赋值号
       this.expression();
+      console.log(3)
       this.match('Semicolon'); // 分号结束
   },
   // 处理加减法规则
@@ -156,14 +166,8 @@ const syntaxAnalyzer = {
           throw new Error(`Unexpected token in factor: ${this.currentToken.value}`);
       }
   },
-  program: function () {
-        console.log('Starting Program');
-        const programNode = { type: 'Program', children: [this.block()] };
-        this.match('Semicolon'); // Program 结束时应该是分号结束
-        return programNode;
-    },
     procedureDeclaration:function(){
-        // console.log('')
+        console.log('start')
         const procedureNode = {
             type:'ProcedureDeclaration',
             children:[]
@@ -185,6 +189,7 @@ const syntaxAnalyzer = {
         procedureNode.children.push(this.block());
 
         // 解析过程结束符号
+        console.log(4)
         this.match('Semicolon');
 
         return procedureNode;
@@ -234,6 +239,7 @@ const syntaxAnalyzer = {
         // 解析参数列表的语法规则
         this.match('Identifier'); // 假设这里只有一个变量
         this.match('Symbol', ')');
+        console.log(5)
         this.match('Semicolon');
     
         return readNode;
@@ -248,6 +254,7 @@ const syntaxAnalyzer = {
         // 解析参数列表的语法规则
         this.expression(); // 假设这里只有一个表达式
         this.match('Symbol', ')');
+        console.log(6)
         this.match('Semicolon');
     
         return writeNode;
