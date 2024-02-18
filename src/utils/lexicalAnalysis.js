@@ -1,85 +1,78 @@
-// 词法分析器对象
 const lexAnalyzer = {
-  // 分析函数，接受源代码作为输入，返回token数组
-  analyze: function (code) {
+  analyze: function(code) {
     const tokens = [];
     let currentToken = '';
-    let currentTokenType = null;
+    const keywords = ['const', 'var', 'procedure', 'call', 'begin', 'end', 'if', 'then', 'else', 'while', 'do', 'read', 'write','for','to'];
+    // 将分号、逗号、句号从operators移除，单独处理
+    const operators = ['+', '-', '*', '/', '=', '<>', '<', '<=', '>', '>='];
+    const equals = [':=']; // 特殊符号：分号、逗号、句号
+    const isWhitespace = char => /\s/.test(char);
+    const isLetter = char => /[a-zA-Z]/.test(char);
+    const isDigit = char => /\d/.test(char);
 
-    const isKeyword = (str) => {
-      const keywords = ['const', 'var', 'procedure', 'call', 'begin', 'end', 'if', 'then', 'else', 'while', 'do', 'read', 'write'];
-      return keywords.includes(str);
-    };
-
-    // const isOperator = (char) => ['+', '-', '*', '/', '<>', '<', '<=', '>', '>=', '='].includes(char);
-
-    const isOperator = (char, nextChar) => {
-      const operators = [':=', '<>', '<=', '>=', '=', '+', '-', '*', '/', '<', '>'];
-      const combinedOperators = operators.filter(op => op.startsWith(char));
-    
-      if (combinedOperators.length === 1) {
-        const combinedOperator = combinedOperators[0];
-        if (combinedOperator.length === 1 || (combinedOperator.length === 2 && nextChar === '=')) {
-          return true;
-        }
-      }
-    
-      return false;
-    };
-    const pushToken = () => {
-      if (currentToken !== '') {
-        if (isKeyword(currentToken)) {
-          currentTokenType = 'Keyword';
-        } else if (!isNaN(currentToken)) {
-          currentTokenType = 'Number';
-        } else if (isOperator(currentToken)) {
-          currentTokenType = 'Operator';
-        } else if (currentToken === ':') {
-          currentTokenType = 'Colon';
-        } else if (currentToken == ':=') {
-          currentTokenType = 'Equals';
-        } else if (currentToken === ';') {
-          currentTokenType = 'Semicolon';
-        } else if(currentToken == ','){
-          currentTokenType = 'Comma'
-        } else {
-          currentTokenType = 'Identifier';
-        }
-
-        tokens.push({
-          type: currentTokenType,
-          value: currentToken,
-        });
-        currentToken = '';
-        currentTokenType = null;
-      }
+    const addToken = (type, value) => {
+      tokens.push({ type, value });
+      currentToken = '';
     };
 
     for (let i = 0; i < code.length; i++) {
       const char = code[i];
       const nextChar = code[i + 1];
-    
-      if (/\s/.test(char)) {
-        pushToken();
-      } else if (/[a-zA-Z]/.test(char)) {
-        currentToken += char;
-      } else if (/\d/.test(char)) {
-        // pushToken();
-        currentToken = char;
-      } else if (isOperator(char, nextChar)) {
-        pushToken();
-        currentToken = char;
-        if (nextChar === '=') {
-          currentToken += nextChar;
-          i++; // Skip the next character, as it's already part of the operator
+
+      if (isWhitespace(char)) {
+        if (currentToken !== '') {
+          // 如果当前有正在构建的token，则根据其内容确定类型并添加
+          addToken(keywords.includes(currentToken) ? 'Keyword' : 'Identifier', currentToken);
         }
-      } else {
-        pushToken();
+        continue; // 继续处理下一个字符
+      }
+
+      if (isLetter(char)) {
+        currentToken += char;
+        if (!(isLetter(nextChar) || isDigit(nextChar))) {
+          addToken(keywords.includes(currentToken) ? 'Keyword' : 'Identifier', currentToken);
+        }
+      } else if (isDigit(char)) {
+        currentToken += char;
+        if (!isDigit(nextChar)) {
+          addToken('Number', currentToken);
+        }
+      } else if (operators.includes(char) ) {
+        if (currentToken !== '') {
+          addToken('Identifier', currentToken);
+        }
         currentToken = char;
+        if (char === ':' && nextChar === '=') {
+          currentToken += nextChar;
+          i++; // 跳过下一个字符（'='），因为它已经作为操作符的一部分被处理
+        }
+        addToken('Operator', currentToken);
+      } else if (char === ',') {
+        // 对于分号、逗号、句号，直接作为特殊符号处理
+        addToken('Comma', char);
+      } else if(char === ';'){
+        addToken('Semicolon',char)
+      } else if(char === '.'){
+        addToken('End',char)
+      } else if(char === ':' && nextChar === '='){
+        currentToken += nextChar;
+        i++;
+        addToken('Equals',':=')
+      }else if (char === '(' || char === ')') {
+        addToken('Parenthesis', char); // 'Parenthesis'是一个新的Token类型
+      }else {
+        if (currentToken !== '') {
+          addToken('Identifier', currentToken);
+        }
+        // 其他未识别的单字符可能需要特殊处理或报错
+        console.error(`Unrecognized character: ${char}`);
       }
     }
 
-    pushToken(); // 处理最后一个标记
+    // 检查并添加最后一个token（如果有）
+    if (currentToken !== '') {
+      addToken(keywords.includes(currentToken) ? 'Keyword' : 'Identifier', currentToken);
+    }
 
     return tokens;
   },
