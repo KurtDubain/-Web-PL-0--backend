@@ -55,6 +55,12 @@ const syntaxAnalyzer = {
         children:nodes
       }
     },
+    peek() {
+      if (this.currentTokenIndex + 1 < this.tokens.length) {
+          return this.tokens[this.currentTokenIndex + 1].value;
+      }
+      return null; // 如果没有下一个token，则返回null
+    },
   
     block() {
       // A block can contain a declaration followed by a statement
@@ -137,9 +143,46 @@ const syntaxAnalyzer = {
       // Add handling of other statement types here
       return statementNode;
     },
+    parseSingleStatement() {
+      // 假设单条语句可能是赋值、过程调用或其他简单的操作
+      if (this.currentToken.type === 'Identifier') {
+          // 可能是赋值或过程调用
+          let nextToken = this.peek();
+          // console.log(nextToken)
+          if (nextToken && nextToken === ':=') {
+              // 赋值语句
+              return this.parseAssignmentStatement();
+          } else {
+              // 过程调用
+              return this.parseProcedureCall();
+          }
+      } else {
+          // 其他类型的单条语句处理，例如：空语句（NOP），在这里添加
+      }
+    },
+    parseAssignmentStatement() {
+      const identifier = this.currentToken.value; // 当前token应为变量名
+      this.match('Identifier'); // 消费变量名
+      this.match('Equals', ':='); // 消费赋值操作符
+      const expression = this.expression(); // 解析赋值右侧的表达式
+      this.match('Semicolon'); // 赋值语句结束后应有分号
+      return {
+          type: 'AssignmentStatement',
+          identifier: identifier,
+          expression: expression
+      };
+    },
+    parseProcedureCall() {
+      const procedureName = this.currentToken.value; // 当前token为过程名
+      this.match('Identifier'); // 消费过程名
+      this.match('Semicolon'); // 过程调用结束后应有分号
+      return {
+          type: 'ProcedureCall',
+          name: procedureName
+      };
+    },
   
-    // Placeholder for expression parsing, to be implemented based on PL/0 grammar
-    
+      
     expression() {
       let left = this.arithmeticExpression(); // 首先解析算术表达式
       while (this.currentToken && ['<', '<=', '=', '<>', '>', '>='].includes(this.currentToken.value)) {
@@ -209,20 +252,41 @@ const syntaxAnalyzer = {
     },
   
     ifStatement() {
-      this.match('Keyword','if'); // 匹配 'if'
+      this.match('Keyword', 'if'); // 匹配 'if'
       const condition = this.expression(); // 解析条件表达式
-      this.match('Keyword','then'); // 匹配 'then'
-      const thenStatement = this.statement(); // 解析 'then' 分支
-      let elseStatement = null;
-      if (this.currentToken && this.currentToken.type === 'Keyword' && this.currentToken.value === 'else') {
-        this.match('Keyword','else'); // 匹配 'else'
-        elseStatement = this.statement(); // 解析 'else' 分支
+      this.match('Keyword', 'then'); // 匹配 'then'
+  
+      let thenStatement = null;
+      // 直接检查下一个token，决定是解析单条语句还是多条语句
+      if (this.currentToken.value === 'begin') {
+          // 如果是begin，则预期为多条语句，使用beginEndStatement解析
+          thenStatement = this.beginEndStatement();
+      } else {
+          // 否则，解析单条语句
+          // thenStatement = this.parseSingleStatement();
+          thenStatement = this.statement()
+          this.match('Semicolon')
       }
+      let elseStatement = null;
+      // console.log(this.currentToken.value)
+      if (this.currentToken.value === 'else') {
+        this.match('Keyword', 'else'); // 消费掉else关键字
+          // 再次检查else后是否跟begin，以相同方式决定是单条语句还是多条语句
+          if (this.currentToken.value === 'begin') {
+              elseStatement = this.beginEndStatement();
+              this.match('Semicolon')
+          } else {
+              elseStatement = this.statement();
+              this.match('Semicolon')
+          }
+      }
+      this.match('Keyword','end')
+      this.match('Semicolon')
       return {
-        type: 'IfStatement',
-        condition: condition,
-        thenStatement: thenStatement,
-        elseStatement: elseStatement
+          type: 'IfStatement',
+          condition: condition,
+          thenStatement: thenStatement,
+          elseStatement: elseStatement
       };
     },
   
@@ -238,8 +302,6 @@ const syntaxAnalyzer = {
         const procedureName = this.currentToken.value;
         this.match('Identifier'); // Match procedure name
       
-        // Assuming procedures don't have parameters for simplicity
-
         this.match('Semicolon'); // Match semicolon after procedure declaration
         this.symbolTable[procedureName] = {type:'Procedure',body:null}
         const blockNode = this.block(); // Parse the procedure body
@@ -266,10 +328,7 @@ const syntaxAnalyzer = {
           this.advance()
         }
       }
-      
       this.match('Keyword','end'); // Match 'end'
-      // this.match('Semicolon',';')
-      
       return {
         type: 'BeginEndBlock',
         statements
@@ -284,8 +343,17 @@ const syntaxAnalyzer = {
       this.match('Keyword','to'); // Match 'to'
       const finalValue = this.expression(); // Parse <final-value>
       this.match('Keyword','do'); // Match 'do'
-      const body = this.statement(); // Parse <statement>
-      this.match('Semicolon', ';');
+      let loopBody = null
+      if (this.currentToken.value === 'begin') {
+        // 如果循环体以 'begin' 开始，则预期是多条语句
+        loopBody = this.beginEndStatement(); // 解析 begin...end 结构
+      } else {
+          // 否则，解析单条语句作为循环体
+        loopBody = this.statement(); // 解析单条语句
+        this.match('Semicolon', ';')
+      }
+      
+      // ;
       this.match('Keyword', 'end');
         // Match the semicolon after 'end'
       this.match('Semicolon', ';');
@@ -294,7 +362,7 @@ const syntaxAnalyzer = {
         variableName: variableName,
         initialValue: initialValue,
         finalValue: finalValue,
-        body: body
+        body: loopBody
       };
     },
       
