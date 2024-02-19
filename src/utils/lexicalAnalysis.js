@@ -73,6 +73,7 @@ const lexAnalyzer = {
     if (currentToken !== '') {
       addToken(keywords.includes(currentToken) ? 'Keyword' : 'Identifier', currentToken);
     }
+    tokens.push({type:'EOF',value:null})
 
     return tokens;
   },

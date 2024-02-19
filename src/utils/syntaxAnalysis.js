@@ -40,10 +40,20 @@ const syntaxAnalyzer = {
     },
   
     program() {
-      // A program consists of a block followed by a period
-      const blockNode = this.block();
-      this.match('Semicolon'); // Assuming the end of the block is marked by a semicolon
-      return { type: 'Program', children: [blockNode] };
+      const nodes = []
+      while(this.currentToken && this.currentToken.type!=='EOF'){
+        nodes.push(this.block())
+  
+        if (this.currentToken && this.currentToken.type === 'Keyword' && this.currentToken.value === 'end' && this.peek() === '.') {
+          this.match('Keyword', 'end'); // 匹配 "end"
+          this.match('End', '.'); // 确认后面是 "."
+          break; // 完成解析，退出循环
+        }
+      }
+      return {
+        type:'Program',
+        children:nodes
+      }
     },
   
     block() {
@@ -51,6 +61,12 @@ const syntaxAnalyzer = {
       const declarationNode = this.declaration();
       const statementNode = this.statement();
       return { type: 'Block', children: [declarationNode, statementNode] };
+    },
+    peek() {
+      if (this.currentTokenIndex + 1 < this.tokens.length) {
+          return this.tokens[this.currentTokenIndex + 1].value;
+      }
+      return null; // 如果没有下一个token，则返回null
     },
   
     declaration() {
@@ -78,6 +94,7 @@ const syntaxAnalyzer = {
             this.match('Comma');
           } while (true);
         }
+
         this.match('Semicolon');
       }
       return { type: 'Declaration', children: declarations };
@@ -219,9 +236,11 @@ const syntaxAnalyzer = {
         this.match('Identifier'); // Match procedure name
       
         // Assuming procedures don't have parameters for simplicity
+
         this.match('Semicolon'); // Match semicolon after procedure declaration
       
         const blockNode = this.block(); // Parse the procedure body
+
         this.match('Semicolon'); // Match semicolon at the end of the procedure body
       
         return {
@@ -230,50 +249,51 @@ const syntaxAnalyzer = {
           body: blockNode
         };
       },
-      beginEndStatement() {
-        this.match('Keyword','begin'); // Match 'begin'
-        const statements = [];
+    beginEndStatement() {
+      this.match('Keyword','begin'); // Match 'begin'
+      const statements = [];
       
-        while (this.currentToken.value !== 'end') {
-          const statementNode = this.statement();
-          statements.push(statementNode);
+      while (this.currentToken.value !== 'end') {
+        const statementNode = this.statement();
+        statements.push(statementNode);
       
-          // Optionally match semicolon between statements
-          if (this.currentToken.type === 'Semicolon' && this.currentToken.value === ';') {
+        // Optionally match semicolon between statements
+        if (this.currentToken.type === 'Semicolon' && this.currentToken.value === ';') {
             // this.match('Semicolon'); // Match semicolon
-            this.advance()
-          }
+          this.advance()
         }
+      }
       
-        this.match('Keyword','end'); // Match 'end'
-        this.match('Semicolon',';')
-        return {
-          type: 'BeginEndBlock',
-          statements
-        };
-      },
-      forStatement() {
-        this.match('Keyword','for'); // Match 'for'
-        const variableName = this.currentToken.value;
-        this.match('Identifier'); // Match <identifier>
-        this.match('Equals',':='); // Match ':='
-        const initialValue = this.expression(); // Parse <initial-value>
-        this.match('Keyword','to'); // Match 'to'
-        const finalValue = this.expression(); // Parse <final-value>
-        this.match('Keyword','do'); // Match 'do'
-        const body = this.statement(); // Parse <statement>
-        this.match('Semicolon', ';');
-        this.match('Keyword', 'end');
+      this.match('Keyword','end'); // Match 'end'
+      // this.match('Semicolon',';')
+      
+      return {
+        type: 'BeginEndBlock',
+        statements
+      };
+    },
+    forStatement() {
+      this.match('Keyword','for'); // Match 'for'
+      const variableName = this.currentToken.value;
+      this.match('Identifier'); // Match <identifier>
+      this.match('Equals',':='); // Match ':='
+      const initialValue = this.expression(); // Parse <initial-value>
+      this.match('Keyword','to'); // Match 'to'
+      const finalValue = this.expression(); // Parse <final-value>
+      this.match('Keyword','do'); // Match 'do'
+      const body = this.statement(); // Parse <statement>
+      this.match('Semicolon', ';');
+      this.match('Keyword', 'end');
         // Match the semicolon after 'end'
-        this.match('Semicolon', ';');
-        return {
-          type: 'ForStatement',
-          variableName: variableName,
-          initialValue: initialValue,
-          finalValue: finalValue,
-          body: body
-        };
-      },
+      this.match('Semicolon', ';');
+      return {
+        type: 'ForStatement',
+        variableName: variableName,
+        initialValue: initialValue,
+        finalValue: finalValue,
+        body: body
+      };
+    },
       
       
     // Implement other methods like ifStatement, whileStatement, etc., based on PL/0 grammar
