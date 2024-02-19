@@ -291,9 +291,9 @@ const syntaxAnalyzer = {
     },
   
     whileStatement() {
-      this.match('Keyword'); // Match 'while'
+      this.match('Keyword','while'); // Match 'while'
       const condition = this.expression(); // Parse condition
-      this.match('Keyword'); // Match 'do'
+      this.match('Keyword','do'); // Match 'do'
       const doStatement = this.statement(); // Parse the statement to execute as long as condition is true
       return { type: 'WhileStatement', condition, doStatement };
     },
