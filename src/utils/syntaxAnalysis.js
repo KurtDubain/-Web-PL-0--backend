@@ -1,10 +1,11 @@
 // 语法分析
 // 语法分析器对象
 // 语法分析器对象
+const symbolTable = {}
 const syntaxAnalyzer = {
     tokens: [],
     currentTokenIndex: 0,
-    
+    symbolTable:{},
     get currentToken() {
       return this.tokens[this.currentTokenIndex];
     },
@@ -33,7 +34,7 @@ const syntaxAnalyzer = {
       this.tokens = tokens;
       this.currentTokenIndex = 0;
       const ast = this.program();
-      if (this.currentTokenIndex < this.tokens.length) {
+      if (this.currentTokenIndex < this.tokens.length-1) {
         throw new Error('Unexpected tokens at the end of input');
       }
       return ast;
@@ -44,10 +45,9 @@ const syntaxAnalyzer = {
       while(this.currentToken && this.currentToken.type!=='EOF'){
         nodes.push(this.block())
   
-        if (this.currentToken && this.currentToken.type === 'Keyword' && this.currentToken.value === 'end' && this.peek() === '.') {
-          this.match('Keyword', 'end'); // 匹配 "end"
-          this.match('End', '.'); // 确认后面是 "."
-          break; // 完成解析，退出循环
+        if (this.currentToken && this.currentToken.value === '.') {
+          // 匹配`end`
+          this.advance()
         }
       }
       return {
@@ -62,40 +62,35 @@ const syntaxAnalyzer = {
       const statementNode = this.statement();
       return { type: 'Block', children: [declarationNode, statementNode] };
     },
-    peek() {
-      if (this.currentTokenIndex + 1 < this.tokens.length) {
-          return this.tokens[this.currentTokenIndex + 1].value;
-      }
-      return null; // 如果没有下一个token，则返回null
-    },
   
     declaration() {
       const declarations = [];
       while (this.currentToken && this.currentToken.type === 'Keyword' && (this.currentToken.value === 'const' || this.currentToken.value === 'var')) {
-        if (this.currentToken.value === 'const') {
-          this.match('Keyword'); // Match 'const'
-          do {
-            const constName = this.currentToken.value;
-            this.match('Identifier');
-            this.match('Equals');
-            const constValue = this.currentToken.value;
-            this.match('Number');
-            declarations.push({ type: 'ConstDeclaration', name: constName, value: constValue });
-            if (this.currentToken.type !== 'Comma') break;
-            this.match('Comma');
-          } while (true);
-        } else if (this.currentToken.value === 'var') {
-          this.match('Keyword'); // Match 'var'
-          do {
-            const varName = this.currentToken.value;
-            this.match('Identifier');
-            declarations.push({ type: 'VarDeclaration', name: varName });
-            if (this.currentToken.type !== 'Comma') break;
-            this.match('Comma');
-          } while (true);
-        }
-
-        this.match('Semicolon');
+          if (this.currentToken.value === 'const') {
+              this.match('Keyword'); // 匹配 'const'
+              do {
+                  const constName = this.currentToken.value;
+                  this.match('Identifier');
+                  this.match('Equals');
+                  const constValue = parseInt(this.currentToken.value, 10); // 假设值是整数
+                  this.match('Number');
+                  declarations.push({ type: 'ConstDeclaration', name: constName, value: constValue });
+                  this.symbolTable[constName] = { type: 'Constant', value: constValue }; // 更新符号表
+                  if (this.currentToken.type !== 'Comma') break;
+                  this.match('Comma');
+              } while (true);
+          } else if (this.currentToken.value === 'var') {
+              this.match('Keyword'); // 匹配 'var'
+              do {
+                  const varName = this.currentToken.value;
+                  this.match('Identifier');
+                  declarations.push({ type: 'VarDeclaration', name: varName });
+                  this.symbolTable[varName] = { type: 'Variable', value: undefined }; // 更新符号表，初始值为undefined
+                  if (this.currentToken.type !== 'Comma') break;
+                  this.match('Comma');
+              } while (true);
+          }
+          this.match('Semicolon');
       }
       return { type: 'Declaration', children: declarations };
     },
@@ -105,10 +100,18 @@ const syntaxAnalyzer = {
       // Assuming the statement starts with an identifier (for assignment) or a keyword (for control structures)
       if (this.currentToken.type === 'Identifier') {
         const identifier = this.currentToken.value;
-        this.match('Identifier');
-        this.match('Equals',':=');
-        const expressionNode = this.expression();
-        statementNode = { type: 'AssignmentStatement', identifier, expression: expressionNode };
+        if (this.symbolTable[identifier] && this.symbolTable[identifier].type === 'Procedure') {
+          // 处理过程调用
+          this.match('Identifier');
+          this.match('Semicolon');
+          statementNode = { type: 'ProcedureCall', name: identifier };
+        }else{
+          this.match('Identifier');
+          this.match('Equals',':=');
+          const expressionNode = this.expression();
+          statementNode = { type: 'AssignmentStatement', identifier, expression: expressionNode };
+        }
+        
       } else if (this.currentToken.type === 'Keyword') {
         switch (this.currentToken.value) {
           case 'if':
@@ -238,9 +241,9 @@ const syntaxAnalyzer = {
         // Assuming procedures don't have parameters for simplicity
 
         this.match('Semicolon'); // Match semicolon after procedure declaration
-      
+        this.symbolTable[procedureName] = {type:'Procedure',body:null}
         const blockNode = this.block(); // Parse the procedure body
-
+        this.symbolTable[procedureName].body = blockNode
         this.match('Semicolon'); // Match semicolon at the end of the procedure body
       
         return {

@@ -48,8 +48,8 @@ const compilerModel = {
         const tokens = await this.performLexicalAnalysis(code);
         try {
           // 使用语法分析器进行语法分析
-          syntaxAnalyzer.analyze(tokens);
-          return syntaxAnalyzer.analysisResult;
+          // syntaxAnalyzer.analyze(tokens);
+          return syntaxAnalyzer.analyze(tokens);
         } catch (error) {
           console.error(`语法分析出错了: ${error.message}`);
           return `语法分析错误: ${error.message}`;
