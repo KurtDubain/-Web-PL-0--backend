@@ -13,13 +13,19 @@ const syntaxAnalyzer = {
       this.currentTokenIndex++;
     },
   
-    match(expectedType) {
+    match(expectedType, expectedValue = null) {
       if (this.currentToken && this.currentToken.type === expectedType) {
-        console.log(this.currentToken)
+        // 如果提供了expectedValue，则还需要匹配token的具体值
+        if (expectedValue !== null && this.currentToken.value !== expectedValue) {
+          throw new Error(`Expected token value ${expectedValue}, but found ${this.currentToken.value}`);
+        }
+        console.log(this.currentToken);
         this.advance();
       } else {
-        
-        throw new Error(`Expected token type ${expectedType}-${this.currentToken}, but found ${this.currentToken ? this.currentToken.type : 'EOF'}`);
+        // 抛出错误时，包含更多关于期望和实际的信息
+        const foundType = this.currentToken ? this.currentToken.type : 'EOF';
+        const foundValue = this.currentToken ? this.currentToken.value : 'None';
+        throw new Error(`Expected token type ${expectedType}${expectedValue ? ' with value ' + expectedValue : ''}, but found type ${foundType} with value ${foundValue}`);
       }
     },
   
@@ -83,7 +89,7 @@ const syntaxAnalyzer = {
       if (this.currentToken.type === 'Identifier') {
         const identifier = this.currentToken.value;
         this.match('Identifier');
-        this.match('Equals');
+        this.match('Equals',':=');
         const expressionNode = this.expression();
         statementNode = { type: 'AssignmentStatement', identifier, expression: expressionNode };
       } else if (this.currentToken.type === 'Keyword') {
@@ -113,23 +119,91 @@ const syntaxAnalyzer = {
     },
   
     // Placeholder for expression parsing, to be implemented based on PL/0 grammar
+    
     expression() {
-      // Simple implementation, should be expanded
-      this.match('Number'); // Assuming an expression is a single number for simplicity
-      return { type: 'Expression', value: this.currentToken.value };
+      let left = this.arithmeticExpression(); // 首先解析算术表达式
+      while (this.currentToken && ['<', '<=', '=', '<>', '>', '>='].includes(this.currentToken.value)) {
+        const operator = this.currentToken.value;
+        this.match('Operator'); // 匹配比较操作符
+        let right = this.arithmeticExpression(); // 再次解析算术表达式作为右侧
+        // 构建比较表达式的AST节点
+        left = {
+          type: 'BinaryExpression',
+          operator: operator,
+          left: left,
+          right: right
+        };
+      }
+      return left;
+    },
+    
+    arithmeticExpression() {
+      let node = this.term();
+      while (this.currentToken && ['+', '-'].includes(this.currentToken.value)) {
+        const operator = this.currentToken.value;
+        this.match('Operator', operator); // 匹配加减运算符
+        const right = this.term(); // 解析右侧的term
+        node = {
+          type: 'BinaryExpression',
+          operator: operator,
+          left: node,
+          right: right
+        };
+      }
+      return node;
+    },
+    
+    term() {
+      let node = this.factor();
+      while (this.currentToken && ['*', '/'].includes(this.currentToken.value)) {
+        const operator = this.currentToken.value;
+        this.match('Operator', operator); // 匹配乘除运算符
+        const right = this.factor(); // 解析右侧的factor
+        node = {
+          type: 'BinaryExpression',
+          operator: operator,
+          left: node,
+          right: right
+        };
+      }
+      return node;
+    },
+    
+    factor() {
+      // 这个方法需要解析数字和括号内的表达式
+      if (this.currentToken.type === 'Number') {
+        const node = { type: 'Literal', value: this.currentToken.value };
+        this.advance(); // 前进到下一个token
+        return node;
+      } else if (this.currentToken.type === 'Identifier') {
+        const node = { type: 'Identifier', name: this.currentToken.value };
+        this.advance(); // 前进到下一个token
+        return node;
+      } else if (this.currentToken.value === '(') {
+        this.match('Operator', '('); // 匹配左括号
+        let node = this.expression(); // 解析括号内的表达式
+        this.match('Operator', ')'); // 匹配右括号
+        return node;
+      }
+      throw new Error(`Unexpected token: ${this.currentToken.value}`);
     },
   
     ifStatement() {
-      this.match('Keyword'); // Match 'if'
-      const condition = this.expression(); // Parse condition
-      this.match('Keyword'); // Match 'then'
-      const thenStatement = this.statement(); // Parse the statement to execute if condition is true
+      this.match('Keyword','if'); // 匹配 'if'
+      const condition = this.expression(); // 解析条件表达式
+      this.match('Keyword','then'); // 匹配 'then'
+      const thenStatement = this.statement(); // 解析 'then' 分支
       let elseStatement = null;
       if (this.currentToken && this.currentToken.type === 'Keyword' && this.currentToken.value === 'else') {
-        this.match('Keyword'); // Match 'else'
-        elseStatement = this.statement(); // Parse the statement to execute if condition is false
+        this.match('Keyword','else'); // 匹配 'else'
+        elseStatement = this.statement(); // 解析 'else' 分支
       }
-      return { type: 'IfStatement', condition, thenStatement, elseStatement };
+      return {
+        type: 'IfStatement',
+        condition: condition,
+        thenStatement: thenStatement,
+        elseStatement: elseStatement
+      };
     },
   
     whileStatement() {
@@ -157,7 +231,7 @@ const syntaxAnalyzer = {
         };
       },
       beginEndStatement() {
-        this.match('Keyword'); // Match 'begin'
+        this.match('Keyword','begin'); // Match 'begin'
         const statements = [];
       
         while (this.currentToken.value !== 'end') {
@@ -165,12 +239,12 @@ const syntaxAnalyzer = {
           statements.push(statementNode);
       
           // Optionally match semicolon between statements
-          if (this.currentToken.type === 'Punctuation' && this.currentToken.value === ';') {
-            this.match('Punctuation'); // Match semicolon
+          if (this.currentToken.type === 'Semicolon' && this.currentToken.value === ';') {
+            this.match('Semicolon'); // Match semicolon
           }
         }
       
-        this.match('Keyword'); // Match 'end'
+        this.match('Keyword','end'); // Match 'end'
       
         return {
           type: 'BeginEndBlock',
@@ -178,14 +252,14 @@ const syntaxAnalyzer = {
         };
       },
       forStatement() {
-        this.match('Keyword'); // Match 'for'
+        this.match('Keyword','for'); // Match 'for'
         const variableName = this.currentToken.value;
         this.match('Identifier'); // Match <identifier>
-        this.match('Equals'); // Match ':='
+        this.match('Equals',':='); // Match ':='
         const initialValue = this.expression(); // Parse <initial-value>
-        this.match('Keyword'); // Match 'to'
+        this.match('Keyword','to'); // Match 'to'
         const finalValue = this.expression(); // Parse <final-value>
-        this.match('Keyword'); // Match 'do'
+        this.match('Keyword','do'); // Match 'do'
         const body = this.statement(); // Parse <statement>
         return {
           type: 'ForStatement',
