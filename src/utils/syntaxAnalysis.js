@@ -240,12 +240,13 @@ const syntaxAnalyzer = {
       
           // Optionally match semicolon between statements
           if (this.currentToken.type === 'Semicolon' && this.currentToken.value === ';') {
-            this.match('Semicolon'); // Match semicolon
+            // this.match('Semicolon'); // Match semicolon
+            this.advance()
           }
         }
       
         this.match('Keyword','end'); // Match 'end'
-      
+        this.match('Semicolon',';')
         return {
           type: 'BeginEndBlock',
           statements
@@ -261,6 +262,10 @@ const syntaxAnalyzer = {
         const finalValue = this.expression(); // Parse <final-value>
         this.match('Keyword','do'); // Match 'do'
         const body = this.statement(); // Parse <statement>
+        this.match('Semicolon', ';');
+        this.match('Keyword', 'end');
+        // Match the semicolon after 'end'
+        this.match('Semicolon', ';');
         return {
           type: 'ForStatement',
           variableName: variableName,
