@@ -58,11 +58,11 @@ const compilerModel = {
     // 语义分析实现
     async performSemanticAnalysis(code) {
       console.log('语义分析开始了');
-      const tokens = await this.performLexicalAnalysis(code);
+      const ast = await this.performSyntaxAnalysis(code);
         try {
           // 使用语法分析器进行语法分析
-          semanticAnalyzer.analyze(tokens);
-          return semanticAnalyzer.analysisResult;
+          return semanticAnalyzer.analyze(ast);
+          // return semanticAnalyzer.analysisResult;
         } catch (error) {
           console.error(`语义分析出错了: ${error.message}`);
           return `语义分析错误: ${error.message}`;

@@ -1,7 +1,6 @@
 // 语法分析
 // 语法分析器对象
 // 语法分析器对象
-const symbolTable = {}
 const syntaxAnalyzer = {
     tokens: [],
     currentTokenIndex: 0,
@@ -372,5 +371,3 @@ const syntaxAnalyzer = {
 
 
 module.exports = syntaxAnalyzer;
-
-
