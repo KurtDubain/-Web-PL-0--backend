@@ -80,7 +80,7 @@ const compilerModel = {
     async performTargetCodeGeneration(code) {
       console.log('目标代码生成开始了');
       const intermediateCode = await this.performIntermediateCodeGeneration(code)
-      const targetCode = generateTargetCode(intermediateCode);
+      const targetCode = generateTargetCode.generateWAT(intermediateCode);
 
       return targetCode;
     },
