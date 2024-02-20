@@ -134,6 +134,15 @@ const syntaxAnalyzer = {
           case 'for':
             statementNode = this.forStatement();
             break;
+          case 'read':
+            statementNode = this.parseReadStatement();
+            break;
+          case 'write':
+            statementNode = this.parseWriteStatement();
+            break;
+          case 'call':
+            statementNode = this.parseProcedureCall(); // 已有逻辑可以复用
+            break;
           // Add other control structures here
           default:
             throw new Error(`Unsupported statement with keyword ${this.currentToken.value}`);
@@ -172,6 +181,7 @@ const syntaxAnalyzer = {
       };
     },
     parseProcedureCall() {
+      this.match('Keyword','call')
       const procedureName = this.currentToken.value; // 当前token为过程名
       this.match('Identifier'); // 消费过程名
       this.match('Semicolon'); // 过程调用结束后应有分号
@@ -180,6 +190,27 @@ const syntaxAnalyzer = {
           name: procedureName
       };
     },
+    parseReadStatement() {
+      this.match('Keyword', 'read');
+      const variableName = this.currentToken.value;
+      this.match('Identifier'); // 消费变量名
+      this.match('Semicolon'); // 语句结束
+      return {
+        type: 'ReadStatement',
+        variableName
+      };
+    },
+    
+    parseWriteStatement() {
+      this.match('Keyword', 'write');
+      const expressionNode = this.expression(); // 解析要输出的表达式
+      this.match('Semicolon'); // 语句结束
+      return {
+        type: 'WriteStatement',
+        expression: expressionNode
+      };
+    },
+    
   
       
     expression() {
