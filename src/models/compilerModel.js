@@ -4,10 +4,12 @@ const lexicalAnalyzer = require('../utils/lexicalAnalysis')
 const semanticAnalyzer = require('../utils/semanticAnalysis')
 const syntaxAnalyzer = require('../utils/syntaxAnalysis')
 const generateTargetCode = require('../utils/targetCodeGeneration')
+// 编译操作数据模型
 const compilerModel = {
+  // 编译功能
     async compileCode(code, options) {
       const result = {};
-      console.log(options)
+      // 根据options确定返回的result内容
       // Lexical analysis词法分析
       if (options['LexicalAnalysis']) {
         result['LexicalAnalysis'] = await this.performLexicalAnalysis(code);
@@ -34,21 +36,18 @@ const compilerModel = {
       }
       return result;
     },
-  
+  // 编译步骤实现
     // 词法分析实现
     async performLexicalAnalysis(code) {
-      console.log('词法分析开始了');
       const token = lexicalAnalyzer.analyze(code)
       return token;
     },
     // 语法分析实现
     async performSyntaxAnalysis(code) {
-      console.log('语法分析开始了');
         // 将 PL/0 代码解析成 token 数组
         const tokens = await this.performLexicalAnalysis(code);
         try {
           // 使用语法分析器进行语法分析
-          // syntaxAnalyzer.analyze(tokens);
           return syntaxAnalyzer.analyze(tokens);
         } catch (error) {
           console.error(`语法分析出错了: ${error.message}`);
@@ -57,7 +56,6 @@ const compilerModel = {
     },
     // 语义分析实现
     async performSemanticAnalysis(code) {
-      console.log('语义分析开始了');
       const ast = await this.performSyntaxAnalysis(code);
         try {
           // 使用语法分析器进行语法分析
@@ -70,19 +68,26 @@ const compilerModel = {
     },
     // 中间代码生成实现
     async performIntermediateCodeGeneration(code) {
-      console.log('中间代码生成开始了');
-      const syntaxTree = await this.performSyntaxAnalysis(code);
-      const intermediateCode = intermediateCodeGenerator.generateIntermediateCode(syntaxTree);
-      return intermediateCode;
+      try{
+        const syntaxTree = await this.performSyntaxAnalysis(code);
+        const intermediateCode = intermediateCodeGenerator.generateIntermediateCode(syntaxTree);
+        return intermediateCode;
+      }catch(error){
+        console.error(`中间代码生成出错了: ${error.message}`);
+        return `中间代码生成错误: ${error.message}`;
+      }
     },
     
     // 目标代码生成实现
     async performTargetCodeGeneration(code) {
-      console.log('目标代码生成开始了');
-      const intermediateCode = await this.performIntermediateCodeGeneration(code)
-      const targetCode = generateTargetCode.generateWAT(intermediateCode);
-
-      return targetCode;
+      try{
+        const intermediateCode = await this.performIntermediateCodeGeneration(code)
+        const targetCode = generateTargetCode.generateWAT(intermediateCode);
+        return targetCode;
+      }catch(error){
+        console.error(`目标代码生成出错了: ${error.message}`);
+        return `目标代码生成错误: ${error.message}`;
+      }
     },
    
   };
