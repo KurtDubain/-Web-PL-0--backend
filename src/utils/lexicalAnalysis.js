@@ -45,12 +45,12 @@ const lexAnalyzer = {
         if (char === '>' && nextChar === '=') {
           currentToken += nextChar;
           i++; // 跳过下一个字符（'='），因为它已经作为操作符的一部分被处理
-          addToken('Operator',currentToken)
+          // addToken('Operator',currentToken)
         }
         if(char === '<' && nextChar === '='){
           currentToken += nextChar
           i++
-          addToken('Operator',currentToken)
+          // addToken('Operator',currentToken)
         }
         addToken('Operator', currentToken);
       } else if (char === ',') {

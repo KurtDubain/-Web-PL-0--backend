@@ -267,17 +267,29 @@ const syntaxAnalyzer = {
           this.match('Semicolon')
       }
       let elseStatement = null;
-      // console.log(this.currentToken.value)
-      if (this.currentToken.value === 'else') {
-        this.match('Keyword', 'else'); // 消费掉else关键字
-          // 再次检查else后是否跟begin，以相同方式决定是单条语句还是多条语句
+      const elseIfStatements = []
+      while(this.currentToken.value === 'else'){
+        this.match('Keyword','else')
+        if(this.currentToken.value === 'if'){
+          this.match('Keyword','if')
+          const elseifCondition = this.expression()
+          this.match('Keyword','then')
+          const elseifThenStatement = this.statement()
+          this.match('Semicolon')
+          elseIfStatements.push({
+            condition:elseifCondition,
+            thenStatement:elseifThenStatement
+          })
+
+        }else{
           if (this.currentToken.value === 'begin') {
-              elseStatement = this.beginEndStatement();
-              this.match('Semicolon')
+            elseStatement = this.beginEndStatement();
+            this.match('Semicolon')
           } else {
-              elseStatement = this.statement();
-              this.match('Semicolon')
+            elseStatement = this.statement();
+            this.match('Semicolon')
           }
+        }
       }
       this.match('Keyword','end')
       this.match('Semicolon')
@@ -285,6 +297,7 @@ const syntaxAnalyzer = {
           type: 'IfStatement',
           condition: condition,
           thenStatement: thenStatement,
+          elseIfStatement:elseIfStatements,
           elseStatement: elseStatement
       };
     },
@@ -328,6 +341,7 @@ const syntaxAnalyzer = {
         }
       }
       this.match('Keyword','end'); // Match 'end'
+      
       return {
         type: 'BeginEndBlock',
         statements
@@ -346,6 +360,7 @@ const syntaxAnalyzer = {
       if (this.currentToken.value === 'begin') {
         // 如果循环体以 'begin' 开始，则预期是多条语句
         loopBody = this.beginEndStatement(); // 解析 begin...end 结构
+        this.match('Semicolon')
       } else {
           // 否则，解析单条语句作为循环体
         loopBody = this.statement(); // 解析单条语句
