@@ -52,6 +52,10 @@ const lexAnalyzer = {
           i++
           // addToken('Operator',currentToken)
         }
+        if(char==='<'&&nextChar==='>'){
+          currentToken+=nextChar
+          i++
+        }
         addToken('Operator', currentToken);
       } else if (char === ',') {
         // 对于分号、逗号、句号，直接作为特殊符号处理
