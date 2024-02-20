@@ -4,7 +4,7 @@ const lexAnalyzer = {
     let currentToken = '';
     const keywords = ['const', 'var', 'procedure', 'call', 'begin', 'end', 'if', 'then', 'else', 'while', 'do', 'read', 'write','for','to'];
     // 将分号、逗号、句号从operators移除，单独处理
-    const operators = ['+', '-', '*', '/', '=', '<>', '<', '<=', '>', '>='];
+    const operators = ['+', '-', '*', '/', '=', '<', '<=', '>', '>='];
     const equals = [':=']; // 特殊符号：分号、逗号、句号
     const isWhitespace = char => /\s/.test(char);
     const isLetter = char => /[a-zA-Z]/.test(char);
@@ -42,9 +42,15 @@ const lexAnalyzer = {
           addToken('Identifier', currentToken);
         }
         currentToken = char;
-        if (char === ':' && nextChar === '=') {
+        if (char === '>' && nextChar === '=') {
           currentToken += nextChar;
           i++; // 跳过下一个字符（'='），因为它已经作为操作符的一部分被处理
+          addToken('Operator',currentToken)
+        }
+        if(char === '<' && nextChar === '='){
+          currentToken += nextChar
+          i++
+          addToken('Operator',currentToken)
         }
         addToken('Operator', currentToken);
       } else if (char === ',') {
