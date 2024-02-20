@@ -18,11 +18,11 @@ const semanticAnalyzer = {
     switch (node.type) {
       case 'Program':
       case 'Block':
+        this.processChildren(node);
+        break;
       case 'BeginEndBlock':
-        if (node.children && node.children.length > 0) {
-          node.children.forEach(child => this.processNode(child));
-        }
-        break
+        this.processStatements(node.statements);
+        break;
       case 'Declaration':
         this.processDeclaration(node);
         break;
@@ -44,9 +44,25 @@ const semanticAnalyzer = {
       case 'ForStatement':
         this.processForStatement(node);
         break;
+      case 'ReadStatement':
+        this.processReadStatement(node);
+        break;
+      case 'WriteStatement':
+        this.processWriteStatement(node);
+        break;
+
       default:
         console.warn(`Unhandled node type: ${node.type}`);
     }
+  },
+  processChildren(node) {
+    if (node.children && node.children.length > 0) {
+      node.children.forEach(child => this.processNode(child));
+    }
+  },
+
+  processStatements(statements) {
+    statements.forEach(statement => this.processNode(statement));
   },
 
   processDeclaration(node) {
@@ -105,6 +121,33 @@ const semanticAnalyzer = {
     this.processNode(node.finalValue);
     this.processNode(node.body);
   },
+  processReadStatement(node) {
+    const name = node.variableName;
+    if (!this.symbolTable[name]) {
+      throw new Error(`Read operation on undeclared variable '${name}'.`);
+    }
+    // 'read'操作可能需要标记变量为已使用或进行其他相关处理
+  },
+  
+  processWriteStatement(node) {
+    // 对于'write'语句，需要确保其表达式中的变量已声明
+    this.processExpression(node.expression); // 假设已存在处理表达式的方法
+  },
+  processExpression(expression) {
+    switch (expression.type) {
+      case 'Identifier':
+        const name = expression.name;
+        if (!this.symbolTable[name]) {
+          throw new Error(`Variable ${name} is not declared.`);
+        }
+        break;
+      case 'BinaryExpression':
+        this.processExpression(expression.left);
+        this.processExpression(expression.right);
+        break;
+      // 处理其他表达式类型...
+    }
+  }
 };
 
 module.exports = semanticAnalyzer;
