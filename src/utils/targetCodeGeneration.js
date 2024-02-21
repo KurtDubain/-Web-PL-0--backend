@@ -1,122 +1,82 @@
 const targetCodeGenerator = {
-  labelCounter:0,
-  generateWAT: function(intermediateCode) {
+  labelCounter: 0,
+  loopLabelsStack: [],
+
+  generateLabel() {
+    return `label${this.labelCounter++}`;
+  },
+
+  generateWAT(intermediateCode) {
     let watCode = [
       '(module',
-      '  (import "js" "log" (func $log (param i32)))', // 假设外部日志函数
-      '  (import "js" "read" (func $read (result i32)))', // 假设外部读取函数
-      '  ;; Variable declarations',
+      '  (import "js" "log" (func $log (param i32)))', // 日志函数
+      '  (import "js" "read" (func $read (result i32)))', // 读取函数
     ];
-    
 
-    let localVars = new Set(); // 局部变量集合
-    let procedures = {}; // 过程定义
     let currentProcedure = '$main'; // 当前处理的过程，默认为主过程
+    let procedureCode = { '$main': [] }; // 存储过程代码
+    let localVars = new Set(); // 存储局部变量
 
-    procedures[currentProcedure] = []; // 初始化主过程代码数组
-
-    intermediateCode.forEach(line => {
-      let [operation, ...operands] = line.split(' ');
+    intermediateCode.forEach(instruction => {
+      let [operation, operand1, operand2] = instruction.split(' ');
+      let codeLine = '';
 
       switch (operation) {
         case 'DECLARE':
-          if (!localVars.has(operands[0])) {
-            watCode.push(`  (local $${operands[0]} i32)`);
-            localVars.add(operands[0]);
-          }
-          break;
         case 'CONST':
-          procedures[currentProcedure].push(`    (i32.const ${operands[2]})`);
-          procedures[currentProcedure].push(`    (set_local $${operands[0]})`);
+          if (!localVars.has(operand1)) {
+            watCode.push(`  (local $${operand1} i32)`);
+            localVars.add(operand1);
+          }
+          if (operation === 'CONST') {
+            procedureCode[currentProcedure].push(`    (i32.const ${operand2})`);
+            procedureCode[currentProcedure].push(`    (set_local $${operand1})`);
+          }
           break;
         case 'LOAD':
-          procedures[currentProcedure].push(`    (get_local $${operands[0]})`);
-          break;
         case 'STORE':
-          procedures[currentProcedure].push(`    (set_local $${operands[0]})`);
-          break;
         case 'PUSH':
-          procedures[currentProcedure].push(`    (i32.const ${operands[0]})`);
-          break;
-        case 'OPER':
-          let wasmOp = this.mapOperatorToWasm(operands[0]);
-          procedures[currentProcedure].push(`    ${wasmOp}`);
-          break;
-          case 'IF':
-            // 开始一个 if 构造
-            watCode.push(`    (if`);
-            break;
-          case 'ELSEIF':
-            // 处理 elseif，需要先结束上一个 if 或 elseif 块，然后开始一个新的
-            watCode.push('    (else');
-            watCode.push('      (if');
-            break;
-          case 'ELSE':
-            // 处理 else 块，只需开始一个 else 块
-            watCode.push('    (else)');
-            break;
-          case 'ENDIF':
-            // 结束一个 if 块，对于每个 ELSEIF 或 ELSE，我们已经添加了相应的结束标记
-            watCode.push('    )'); // 结束 if 或 else
-            break;
         case 'CALL':
-          procedures[currentProcedure].push(`    (call $${operands[0]})`);
-          break;
         case 'READ':
-          procedures[currentProcedure].push(`    (call $read)`);
-          procedures[currentProcedure].push(`    (set_local $${operands[0]})`);
-          break;
         case 'WRITE':
-          procedures[currentProcedure].push(`    (call $log)`);
+          // 直接处理这些操作，将相应的WAT代码添加到当前过程
+          codeLine = this.handleOperation(operation, operand1, operand2);
+          procedureCode[currentProcedure].push(codeLine);
           break;
         case 'PROCEDURE':
-          if (operands[1] === 'START') {
-            currentProcedure = `$${operands[0]}`;
-            procedures[currentProcedure] = [];
+          if (operand2 === 'START') {
+            currentProcedure = `$${operand1}`;
+            procedureCode[currentProcedure] = []; // 初始化新过程的代码数组
           } else {
-            watCode.push(`  (func ${currentProcedure} (export "${operands[0]}")`);
-            watCode = watCode.concat(procedures[currentProcedure]);
+            // 结束当前过程，生成WAT代码
+            watCode.push(`  (func ${currentProcedure} (export "${operand1}")`);
+            watCode = watCode.concat(procedureCode[currentProcedure]);
             watCode.push('  )');
-            currentProcedure = '$main';
+            currentProcedure = '$main'; // 回到主过程
           }
           break;
-          case 'WHILE':
-  const whileStartLabel = this.generateLabel(); // 确保先声明
-  const whileEndLabel = this.generateLabel();
-  watCode.push(`    (block $${whileEndLabel}`);
-  watCode.push(`      (loop $${whileStartLabel}`);
-  // 这里插入循环条件的WAT代码
-  // 循环体的WAT代码会在其他部分生成
-  break;
-case 'ENDWHILE':
-  // 这里可能需要插入循环条件的判断逻辑，以决定是否跳转回循环开始
-  watCode.push(`        br_if $${whileStartLabel}`);
-  watCode.push(`      )`); // 结束loop
-  watCode.push(`    )`); // 结束block
-  break;
-case 'FOR':
-  const forStartLabel = this.generateLabel(); // 确保先声明
-  const forEndLabel = this.generateLabel();
-  // 这里插入FOR循环初始化和条件判断的WAT代码
-  watCode.push(`    (block $${forEndLabel}`);
-  watCode.push(`      (loop $${forStartLabel}`);
-  // 循环体的WAT代码
-  break;
-case 'ENDFOR':
-  // 循环变量更新和条件判断逻辑
-  watCode.push(`        br_if $${forStartLabel}`);
-  watCode.push(`      )`); // 结束loop
-  watCode.push(`    )`); // 结束block
-  break;
-          
-        // 添加其他操作的处理逻辑
+        case 'IF':
+        case 'ELSEIF':
+        case 'ELSE':
+        case 'ENDIF':
+          // 处理条件语句
+          codeLine = this.handleCondition(operation, operand1, operand2);
+          procedureCode[currentProcedure].push(codeLine);
+          break;
+        case 'WHILE':
+        case 'ENDWHILE':
+        case 'FOR':
+        case 'ENDFOR':
+          // 处理循环语句
+          this.handleLoop(operation, operand1, procedureCode[currentProcedure]);
+          break;
       }
     });
 
-    // 添加主过程
-    if (currentProcedure === '$main' && procedures[currentProcedure].length > 0) {
+    // 如果主过程有代码，则生成主过程的WAT代码
+    if (procedureCode['$main'].length > 0) {
       watCode.push('  (func $main (export "main")');
-      watCode = watCode.concat(procedures[currentProcedure]);
+      watCode = watCode.concat(procedureCode['$main']);
       watCode.push('  )');
     }
 
@@ -124,27 +84,63 @@ case 'ENDFOR':
     return watCode.join('\n');
   },
 
-  mapOperatorToWasm: function(operator) {
-    // 映射操作符到WASM指令
-    const opMap = {
-      '+': 'i32.add',
-      '-': 'i32.sub',
-      '*': 'i32.mul',
-      '/': 'i32.div_s',
-      '<=': 'i32.le_s',
-      '>=': 'i32.ge_s',
-      '<': 'i32.lt_s',
-      '>': 'i32.gt_s',
-      '==': 'i32.eq',
-      '!=': 'i32.ne',
-      // 添加其他操作符的映射
-    };
-    return opMap[operator] || 'i32.const 0'; // 默认操作
-  },
-  generateLabel: function() {
-    return `label${this.labelCounter++}`; // 使用对象内部的方法来生成标签
+  handleOperation(operation, operand1, operand2) {
+    // 根据操作生成相应的WAT代码行
+    switch (operation) {
+      case 'LOAD':
+        return `    (get_local $${operand1})`;
+      case 'STORE':
+        return `    (set_local $${operand1})`;
+      case 'PUSH':
+        return `    (i32.const ${operand1})`;
+      case 'CALL':
+        return `    (call $${operand1})`;
+      case 'READ':
+        return `    (call $read)\n    (set_local $${operand1})`;
+      case 'WRITE':
+        return `    (call $log)`;
+      default:
+        return '';
+    }
   },
 
+  handleCondition(operation, operand1, operand2) {
+    // 根据条件语句操作生成相应的WAT代码行
+    switch (operation) {
+      case 'IF':
+        return '    (if';
+      case 'ELSEIF':
+        // ELSEIF处理逻辑，需要根据具体情况设计
+        return '    (else (if';
+      case 'ELSE':
+        return '    (else)';
+      case 'ENDIF':
+        return '    )';
+      default:
+        return '';
+    }
+  },
+
+  handleLoop(operation, operand, procedureCode) {
+    // 根据循环操作生成相应的WAT代码行，并处理循环标签
+    let labelInfo;
+    switch (operation) {
+      case 'WHILE':
+      case 'FOR':
+        labelInfo = { start: this.generateLabel(), end: this.generateLabel() };
+        this.loopLabelsStack.push(labelInfo);
+        procedureCode.push(`    (block $${labelInfo.end}`);
+        procedureCode.push(`      (loop $${labelInfo.start}`);
+        break;
+      case 'ENDWHILE':
+      case 'ENDFOR':
+        labelInfo = this.loopLabelsStack.pop();
+        procedureCode.push(`        br_if $${labelInfo.start}`);
+        procedureCode.push(`      )`); // 结束 loop
+        procedureCode.push(`    )`); // 结束 block
+        break;
+    }
+  },
 };
 
 module.exports = targetCodeGenerator;
