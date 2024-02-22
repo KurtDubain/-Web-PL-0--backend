@@ -9,75 +9,79 @@ const intermediateCodeGenerator = {
     if (!node) return;
 
     switch (node.type) {
-      case 'Program':
-      case 'Block':
-        node.children?.forEach(child => this.generateCodeFromNode(child, intermediateCode));
+      case "Program":
+      case "Block":
+        node.children?.forEach((child) =>
+          this.generateCodeFromNode(child, intermediateCode)
+        );
         break;
 
-      case 'BeginEndBlock':
-        node.statements.forEach(statement => this.generateCodeFromNode(statement, intermediateCode));
+      case "BeginEndBlock":
+        node.statements.forEach((statement) =>
+          this.generateCodeFromNode(statement, intermediateCode)
+        );
         break;
 
-      case 'Declaration':
-        node.children.forEach(decl => {
-          if (decl.type === 'VarDeclaration') {
+      case "Declaration":
+        node.children.forEach((decl) => {
+          if (decl.type === "VarDeclaration") {
             intermediateCode.push(`DECLARE ${decl.name}`);
-          } else if (decl.type === 'ConstDeclaration') {
+          } else if (decl.type === "ConstDeclaration") {
             intermediateCode.push(`CONST ${decl.name} = ${decl.value}`);
           }
         });
         break;
 
-      case 'ProcedureDeclaration':
+      case "ProcedureDeclaration":
         intermediateCode.push(`PROCEDURE ${node.name} START`);
         this.generateCodeFromNode(node.body, intermediateCode);
         intermediateCode.push(`PROCEDURE ${node.name} END`);
         break;
 
-      case 'AssignmentStatement':
+      case "AssignmentStatement":
         this.generateCodeFromNode(node.expression, intermediateCode);
         intermediateCode.push(`STORE ${node.identifier}`);
         break;
 
-      case 'ProcedureCall':
+      case "ProcedureCall":
         intermediateCode.push(`CALL ${node.name}`);
         break;
 
-      case 'ReadStatement':
+      case "ReadStatement":
         intermediateCode.push(`READ ${node.variableName}`);
         break;
 
-      case 'WriteStatement':
+      case "WriteStatement":
         this.generateCodeFromNode(node.expression, intermediateCode);
         intermediateCode.push(`WRITE`);
         break;
 
-      case 'IfStatement':
+      case "IfStatement":
         this.generateCodeFromNode(node.condition, intermediateCode);
-        intermediateCode.push('IF');
+        intermediateCode.push("IF");
         this.generateCodeFromNode(node.thenStatement, intermediateCode);
         if (node.elseIfStatement && node.elseIfStatement.length > 0) {
-            node.elseIfStatement.forEach(elseif => {
-                intermediateCode.push('ELSEIF');
-                this.generateCodeFromNode(elseif.condition, intermediateCode);
-                this.generateCodeFromNode(elseif.thenStatement, intermediateCode);
-            });
+          node.elseIfStatement.forEach((elseif) => {
+            intermediateCode.push("ELSEIF");
+            this.generateCodeFromNode(elseif.condition, intermediateCode);
+            this.generateCodeFromNode(elseif.thenStatement, intermediateCode);
+          });
         }
         if (node.elseStatement) {
-            intermediateCode.push('ELSE');
-            this.generateCodeFromNode(node.elseStatement, intermediateCode);
+          intermediateCode.push("ELSE");
+          this.generateCodeFromNode(node.elseStatement, intermediateCode);
         }
-        intermediateCode.push('ENDIF');
+        intermediateCode.push("ENDIF");
         break;
 
-      case 'WhileStatement':
-        intermediateCode.push('WHILE');
+      case "WhileStatement":
+        intermediateCode.push("WHILE");
         this.generateCodeFromNode(node.condition, intermediateCode);
         this.generateCodeFromNode(node.body, intermediateCode);
-        intermediateCode.push('ENDWHILE');
+        intermediateCode.push("ENDWHILE");
         break;
 
-      case 'ForStatement':
+      case "ForStatement":
         this.generateCodeFromNode(node.initialValue, intermediateCode);
         intermediateCode.push(`FOR ${node.variableName} INIT`);
         this.generateCodeFromNode(node.finalValue, intermediateCode);
@@ -87,17 +91,17 @@ const intermediateCodeGenerator = {
         break;
 
       // 处理表达式节点
-      case 'BinaryExpression':
+      case "BinaryExpression":
         this.generateCodeFromNode(node.left, intermediateCode);
         this.generateCodeFromNode(node.right, intermediateCode);
         intermediateCode.push(`OPER ${node.operator}`);
         break;
 
-      case 'Literal':
+      case "Literal":
         intermediateCode.push(`PUSH ${node.value}`);
         break;
 
-      case 'Identifier':
+      case "Identifier":
         intermediateCode.push(`LOAD ${node.name}`);
         break;
 
@@ -106,7 +110,7 @@ const intermediateCodeGenerator = {
       default:
         console.warn(`Unhandled node type: ${node.type}`);
     }
-  }
+  },
 };
 
 module.exports = intermediateCodeGenerator;

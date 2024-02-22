@@ -16,38 +16,38 @@ const semanticAnalyzer = {
   // 根据节点类型分发到具体的处理方法
   processNode(node) {
     switch (node.type) {
-      case 'Program':
-      case 'Block':
+      case "Program":
+      case "Block":
         this.processChildren(node);
         break;
-      case 'BeginEndBlock':
+      case "BeginEndBlock":
         this.processStatements(node.statements);
         break;
-      case 'Declaration':
+      case "Declaration":
         this.processDeclaration(node);
         break;
-      case 'ProcedureDeclaration':
+      case "ProcedureDeclaration":
         this.processProcedureDeclaration(node);
         break;
-      case 'AssignmentStatement':
+      case "AssignmentStatement":
         this.processAssignmentStatement(node);
         break;
-      case 'ProcedureCall':
+      case "ProcedureCall":
         this.processProcedureCall(node);
         break;
-      case 'IfStatement':
+      case "IfStatement":
         this.processIfStatement(node);
         break;
-      case 'WhileStatement':
+      case "WhileStatement":
         this.processWhileStatement(node);
         break;
-      case 'ForStatement':
+      case "ForStatement":
         this.processForStatement(node);
         break;
-      case 'ReadStatement':
+      case "ReadStatement":
         this.processReadStatement(node);
         break;
-      case 'WriteStatement':
+      case "WriteStatement":
         this.processWriteStatement(node);
         break;
 
@@ -57,16 +57,16 @@ const semanticAnalyzer = {
   },
   processChildren(node) {
     if (node.children && node.children.length > 0) {
-      node.children.forEach(child => this.processNode(child));
+      node.children.forEach((child) => this.processNode(child));
     }
   },
 
   processStatements(statements) {
-    statements.forEach(statement => this.processNode(statement));
+    statements.forEach((statement) => this.processNode(statement));
   },
 
   processDeclaration(node) {
-    node.children.forEach(decl => {
+    node.children.forEach((decl) => {
       const name = decl.name;
       if (this.symbolTable[name]) {
         throw new Error(`Variable ${name} is already declared.`);
@@ -80,7 +80,11 @@ const semanticAnalyzer = {
     if (this.symbolTable[name]) {
       throw new Error(`Procedure ${name} is already declared.`);
     }
-    this.symbolTable[name] = { type: 'Procedure', parameters: [], body: node.body };
+    this.symbolTable[name] = {
+      type: "Procedure",
+      parameters: [],
+      body: node.body,
+    };
     // 这里可以递归分析过程体，以处理局部变量等
   },
 
@@ -94,7 +98,10 @@ const semanticAnalyzer = {
 
   processProcedureCall(node) {
     const name = node.name;
-    if (!this.symbolTable[name] || this.symbolTable[name].type !== 'Procedure') {
+    if (
+      !this.symbolTable[name] ||
+      this.symbolTable[name].type !== "Procedure"
+    ) {
       throw new Error(`Procedure ${name} is not declared.`);
     }
     // 对过程调用进行分析，这里简化处理，实际中可能需要检查参数
@@ -128,26 +135,26 @@ const semanticAnalyzer = {
     }
     // 'read'操作可能需要标记变量为已使用或进行其他相关处理
   },
-  
+
   processWriteStatement(node) {
     // 对于'write'语句，需要确保其表达式中的变量已声明
     this.processExpression(node.expression); // 假设已存在处理表达式的方法
   },
   processExpression(expression) {
     switch (expression.type) {
-      case 'Identifier':
+      case "Identifier":
         const name = expression.name;
         if (!this.symbolTable[name]) {
           throw new Error(`Variable ${name} is not declared.`);
         }
         break;
-      case 'BinaryExpression':
+      case "BinaryExpression":
         this.processExpression(expression.left);
         this.processExpression(expression.right);
         break;
       // 处理其他表达式类型...
     }
-  }
+  },
 };
 
 module.exports = semanticAnalyzer;
