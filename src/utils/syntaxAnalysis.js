@@ -318,7 +318,7 @@ const syntaxAnalyzer = {
       // 否则，解析单条语句
       // thenStatement = this.parseSingleStatement();
       thenStatement = this.statement();
-      this.match("Semicolon");
+      // this.match("Semicolon");
     }
     let elseStatement = null;
     const elseIfStatements = [];
@@ -329,7 +329,7 @@ const syntaxAnalyzer = {
         const elseifCondition = this.expression();
         this.match("Keyword", "then");
         const elseifThenStatement = this.statement();
-        this.match("Semicolon");
+        // this.match("Semicolon");
         elseIfStatements.push({
           condition: elseifCondition,
           thenStatement: elseifThenStatement,
@@ -337,10 +337,10 @@ const syntaxAnalyzer = {
       } else {
         if (this.currentToken.value === "begin") {
           elseStatement = this.beginEndStatement();
-          this.match("Semicolon");
+          // this.match("Semicolon");
         } else {
           elseStatement = this.statement();
-          this.match("Semicolon");
+          // this.match("Semicolon");
         }
       }
     }

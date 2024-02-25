@@ -62,8 +62,8 @@ const intermediateCodeGenerator = {
         this.generateCodeFromNode(node.thenStatement, intermediateCode);
         if (node.elseIfStatement && node.elseIfStatement.length > 0) {
           node.elseIfStatement.forEach((elseif) => {
-            intermediateCode.push("ELSEIF");
             this.generateCodeFromNode(elseif.condition, intermediateCode);
+            intermediateCode.push("ELSEIF");
             this.generateCodeFromNode(elseif.thenStatement, intermediateCode);
           });
         }
