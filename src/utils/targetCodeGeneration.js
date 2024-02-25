@@ -1,6 +1,8 @@
 const targetCodeGenerator = {
   labelCounter: 0,
   loopLabelsStack: [],
+  isInLoop: false, // 追踪是否处于循环体内
+  currentLoopOperations: [], // 用于收集当前循环体内的操作
 
   generateLabel() {
     return `label${this.labelCounter++}`;
@@ -86,8 +88,14 @@ const targetCodeGenerator = {
         case "ELSE":
         case "ENDIF":
           // 处理条件语句
-          codeLine = this.handleCondition(operation, operand1, operand2);
-          procedureCode[currentProcedure].push(codeLine);
+          // codeLine = this.handleCondition(operation, operand1, operand2);
+          // procedureCode[currentProcedure].push(codeLine);
+          this.handleCondition(
+            operation,
+            operand1,
+            operand2,
+            procedureCode[currentProcedure]
+          );
           break;
         case "WHILE":
         case "ENDWHILE":
@@ -126,8 +134,17 @@ const targetCodeGenerator = {
       case "WRITE":
         return `    (call $log)`;
       case "OPER":
-        if (operand1 === "*") {
-          return "    (i32.mul)";
+        const operators = {
+          ">": "i32.gt_s",
+          "<": "i32.lt_s",
+          "+": "i32.add",
+          "-": "i32.sub",
+          "*": "i32.mul",
+          "/": "i32.div_s",
+          // 添加其他必要的操作符支持
+        };
+        if (operation === "OPER" && operators[operand1]) {
+          return `    (${operators[operand1]})`;
         }
         break;
       case "INIT_LOOP_VAR":
@@ -139,29 +156,40 @@ const targetCodeGenerator = {
     }
   },
 
-  handleCondition(operation, operand1, operand2) {
+  handleCondition(operation, operand1, operand2, procedureCode) {
     // 根据条件语句操作生成相应的WAT代码行
     switch (operation) {
       case "IF":
-        return "    (if";
+        procedureCode.push(`    (if (result i32)`); // 开始 if 条件
+        // 条件本身应该在调用 handleCondition 之前被处理
+        break;
       case "ELSEIF":
-        // ELSEIF处理逻辑，需要根据具体情况设计
-        return "    (else (if";
+        // WAT 不直接支持 ELSEIF，需要用嵌套的 if 来模拟
+        procedureCode.push(`    )`); // 结束上一个 if 或 else-if 块
+        procedureCode.push(`    (else (if (result i32)`); // 开始 else-if 条件
+        // 条件本身应该在调用 handleCondition 之前被处理
+        break;
       case "ELSE":
-        return "    (else)";
+        procedureCode.push(`    (else`); // 开始 else 分支
+        break;
       case "ENDIF":
-        return "    )";
+        procedureCode.push("    )"); // 结束if或else块
+        if (operation === "ELSEIF" || operation === "ELSE") {
+          procedureCode.push("  )"); // 如果是ELSEIF或ELSE，需要额外结束外层的else块
+        }
+        break;
       default:
         return "";
     }
   },
 
   handleLoop(operation, operand, procedureCode) {
-    // 根据循环操作生成相应的WAT代码行，并处理循环标签
     let labelInfo;
     switch (operation) {
       case "WHILE":
       case "FOR":
+        isInLoop = true; // 标记进入循环体
+        currentLoopOperations = []; // 初始化循环体操作集合
         labelInfo = { start: this.generateLabel(), end: this.generateLabel() };
         this.loopLabelsStack.push(labelInfo);
         procedureCode.push(`    (block $${labelInfo.end}`);
@@ -169,10 +197,14 @@ const targetCodeGenerator = {
         break;
       case "ENDWHILE":
       case "ENDFOR":
+        isInLoop = false; // 标记离开循环体
         labelInfo = this.loopLabelsStack.pop();
-        procedureCode.push(`        br_if $${labelInfo.start}`);
-        procedureCode.push(`      )`); // 结束 loop
-        procedureCode.push(`    )`); // 结束 block
+        // 将循环体内的操作插入到 procedureCode
+        currentLoopOperations.forEach((op) => procedureCode.push(op));
+        currentLoopOperations = []; // 清空循环体操作集合
+        procedureCode.push(`        br $${labelInfo.start}`);
+        procedureCode.push(`      )`);
+        procedureCode.push(`    )`);
         break;
     }
   },
