@@ -120,6 +120,7 @@ const targetCodeGenerator = {
 
   handleOperation(operation, operand1, operand2) {
     // 根据操作生成相应的WAT代码行
+    let codeLine = "";
     switch (operation) {
       case "LOAD":
         return `    (get_local $${operand1})`;
@@ -154,56 +155,119 @@ const targetCodeGenerator = {
       default:
         return "";
     }
+    if (this.isInLoop) {
+      // 如果当前处于循环体内，将操作代码添加到循环体操作集合中
+      this.currentLoopOperations.push(codeLine);
+    } else {
+      // 如果当前不在循环体内，将操作代码直接添加到当前过程的代码中
+      this.procedureCode[this.currentProcedure].push(codeLine);
+    }
   },
 
   handleCondition(operation, operand1, operand2, procedureCode) {
-    // 根据条件语句操作生成相应的WAT代码行
+    // 使用栈来追踪嵌套的if-else结构
+    if (!this.conditionStack) {
+      this.conditionStack = [];
+    }
+
     switch (operation) {
       case "IF":
-        procedureCode.push(`    (if (result i32)`); // 开始 if 条件
-        // 条件本身应该在调用 handleCondition 之前被处理
+        // 开始新的if条件
+        procedureCode.push(`    (if (result i32)`); // 条件表达式应该在此之前被评估
+        this.conditionStack.push("IF");
         break;
       case "ELSEIF":
-        // WAT 不直接支持 ELSEIF，需要用嵌套的 if 来模拟
-        procedureCode.push(`    )`); // 结束上一个 if 或 else-if 块
-        procedureCode.push(`    (else (if (result i32)`); // 开始 else-if 条件
-        // 条件本身应该在调用 handleCondition 之前被处理
+        // 结束前一个if或elseif块，并开始一个新的elseif块
+        procedureCode.push(`    (else`);
+        this.conditionStack.pop(); // 移除上一个IF或ELSEIF
+        procedureCode.push(`    (if (result i32)`); // ELSEIF作为新的if开始
+        this.conditionStack.push("IF");
         break;
       case "ELSE":
-        procedureCode.push(`    (else`); // 开始 else 分支
+        // 开始else块
+        procedureCode.push(`    (else`);
+        this.conditionStack.pop(); // 移除上一个IF或ELSEIF
+        this.conditionStack.push("ELSE");
         break;
       case "ENDIF":
-        procedureCode.push("    )"); // 结束if或else块
-        if (operation === "ELSEIF" || operation === "ELSE") {
-          procedureCode.push("  )"); // 如果是ELSEIF或ELSE，需要额外结束外层的else块
+        // 结束当前的if或else块
+        while (this.conditionStack.length > 0) {
+          let cond = this.conditionStack.pop();
+          procedureCode.push(cond === "IF" ? "    )" : ""); // 对于IF，添加结束标记，ELSE不需要
         }
         break;
-      default:
-        return "";
     }
   },
 
   handleLoop(operation, operand, procedureCode) {
     let labelInfo;
+    // console.log(operand);
     switch (operation) {
-      case "WHILE":
       case "FOR":
-        isInLoop = true; // 标记进入循环体
-        currentLoopOperations = []; // 初始化循环体操作集合
-        labelInfo = { start: this.generateLabel(), end: this.generateLabel() };
+        // this.isInLoop = true; // 标记进入循环体
+        // this.currentLoopOperations = []; // 初始化循环体操作集合
+        labelInfo = {
+          start: this.generateLabel(),
+          end: this.generateLabel(),
+          var: operand,
+        };
         this.loopLabelsStack.push(labelInfo);
         procedureCode.push(`    (block $${labelInfo.end}`);
         procedureCode.push(`      (loop $${labelInfo.start}`);
+        console.log(labelInfo);
         break;
-      case "ENDWHILE":
       case "ENDFOR":
-        isInLoop = false; // 标记离开循环体
+        // this.isInLoop = false; // 标记离开循环体
+        // console.log(labelInfo);
         labelInfo = this.loopLabelsStack.pop();
         // 将循环体内的操作插入到 procedureCode
-        currentLoopOperations.forEach((op) => procedureCode.push(op));
-        currentLoopOperations = []; // 清空循环体操作集合
+        // this.currentLoopOperations.forEach((op) => procedureCode.push(op));
+        // this.currentLoopOperations = []; // 清空循环体操作集合
+        procedureCode.push(`        (get_local $${labelInfo.var})`);
+        procedureCode.push(`        (i32.const 1)`);
+        procedureCode.push(`        (i32.add)`);
+        procedureCode.push(`        (set_local $${labelInfo.var})`);
+
+        // 添加比较循环变量和结束条件，决定是否跳出循环
+        procedureCode.push(`        (get_local $${labelInfo.var})`);
+        procedureCode.push(`        (i32.const /* 循环结束值 */)`);
+        procedureCode.push(`        (i32.gt_s)`);
+        procedureCode.push(`        (br_if $${labelInfo.end})`);
+
         procedureCode.push(`        br $${labelInfo.start}`);
         procedureCode.push(`      )`);
+        procedureCode.push(`    )`);
+        break;
+      case "WHILE":
+        // 标记进入循环体
+        labelInfo = {
+          start: this.generateLabel(),
+          condition: this.generateLabel(), // 新增：循环条件检查标签
+          end: this.generateLabel(),
+        };
+
+        this.loopLabelsStack.push(labelInfo);
+
+        // 开始循环，首先跳转到条件检查
+        procedureCode.push(`    (block $${labelInfo.end}`); // 循环终止的外层块
+        procedureCode.push(`      (loop $${labelInfo.start}`); // 实际循环开始的地方
+        procedureCode.push(`        (br $${labelInfo.condition})`); // 首次进入循环，跳转到条件检查
+        break;
+      case "ENDWHILE":
+        labelInfo = this.loopLabelsStack.pop();
+        // 循环体结束后的操作，如递增等，已经通过其他命令插入
+
+        // 条件检查标签位置
+        procedureCode.push(`      (block $${labelInfo.condition}`);
+        // 这里插入循环条件检查代码，例如通过handleCondition方法处理“LOAD i”, “PUSH 5”, “OPER <=”
+        // 循环继续的条件。此处代码需要在调用handleLoop之前准备好，或通过特定逻辑插入
+        // 如果条件为真，继续循环
+        procedureCode.push(`        (br_if $${labelInfo.start})`);
+        // 关闭条件检查的块
+        procedureCode.push(`      )`);
+        // 关闭循环
+        procedureCode.push(`      )`);
+        // 关闭循环终止的外层块
         procedureCode.push(`    )`);
         break;
     }
