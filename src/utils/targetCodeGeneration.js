@@ -99,6 +99,7 @@ const targetCodeGenerator = {
           break;
         case "WHILE":
         case "ENDWHILE":
+        case "DO":
         case "FOR":
         case "ENDFOR":
           // 处理循环语句
@@ -259,7 +260,14 @@ const targetCodeGenerator = {
         // 开始循环，首先跳转到条件检查
         procedureCode.push(`    (block $${labelInfo.end}`); // 循环终止的外层块
         procedureCode.push(`      (loop $${labelInfo.start}`); // 实际循环开始的地方
-        procedureCode.push(`        (br $${labelInfo.condition})`); // 首次进入循环，跳转到条件检查
+        // 首次进入循环，跳转到条件检查
+        break;
+      case "DO":
+        // 循环体开始前的条件检查，因为'WHILE'后立即是条件
+        const currentLabelInfo =
+          this.loopLabelsStack[this.loopLabelsStack.length - 1];
+        procedureCode.push(`        (i32.eqz)`);
+        procedureCode.push(`        (br_if $${currentLabelInfo.end})`); // 如果条件不满足，则跳出循环
         break;
       case "ENDWHILE":
         if (this.loopLabelsStack.length > 0) {
@@ -274,7 +282,7 @@ const targetCodeGenerator = {
 
         // 注意：这里假设循环条件已经在循环开始处被评估
         // 如果条件满足，使用br_if跳回循环开始
-        procedureCode.push(`          (br_if $${labelInfo.start})`);
+        procedureCode.push(`          (br $${labelInfo.start})`);
         procedureCode.push(`        )`); // 结束条件检查块
 
         procedureCode.push(`      )`); // 结束循环开始的块

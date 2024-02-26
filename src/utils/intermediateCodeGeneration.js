@@ -77,6 +77,7 @@ const intermediateCodeGenerator = {
       case "WhileStatement":
         intermediateCode.push("WHILE");
         this.generateCodeFromNode(node.condition, intermediateCode);
+        intermediateCode.push("DO"); // 明确标记循环体开始
         this.generateCodeFromNode(node.doStatement, intermediateCode);
         intermediateCode.push("ENDWHILE");
         break;
