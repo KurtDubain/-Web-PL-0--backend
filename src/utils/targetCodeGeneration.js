@@ -102,7 +102,16 @@ const targetCodeGenerator = {
         case "FOR":
         case "ENDFOR":
           // 处理循环语句
-          this.handleLoop(operation, operand1, procedureCode[currentProcedure]);
+          if (operand1 != undefined) {
+            this.handleLoop(
+              operation,
+              operand1,
+              procedureCode[currentProcedure]
+            );
+          } else {
+            // 如果operand1是undefined，可能表示当前操作不需要operand，调整方法调用以反映这一点
+            this.handleLoop(operation, null, procedureCode[currentProcedure]);
+          }
           break;
       }
     });
@@ -247,28 +256,29 @@ const targetCodeGenerator = {
         };
 
         this.loopLabelsStack.push(labelInfo);
-
         // 开始循环，首先跳转到条件检查
         procedureCode.push(`    (block $${labelInfo.end}`); // 循环终止的外层块
         procedureCode.push(`      (loop $${labelInfo.start}`); // 实际循环开始的地方
         procedureCode.push(`        (br $${labelInfo.condition})`); // 首次进入循环，跳转到条件检查
         break;
       case "ENDWHILE":
-        labelInfo = this.loopLabelsStack.pop();
-        // 循环体结束后的操作，如递增等，已经通过其他命令插入
+        if (this.loopLabelsStack.length > 0) {
+          labelInfo = this.loopLabelsStack.pop();
+        } else {
+          throw new Error("Mismatched WHILE-ENDWHILE structure.");
+        }
 
-        // 条件检查标签位置
-        procedureCode.push(`      (block $${labelInfo.condition}`);
-        // 这里插入循环条件检查代码，例如通过handleCondition方法处理“LOAD i”, “PUSH 5”, “OPER <=”
-        // 循环继续的条件。此处代码需要在调用handleLoop之前准备好，或通过特定逻辑插入
-        // 如果条件为真，继续循环
-        procedureCode.push(`        (br_if $${labelInfo.start})`);
-        // 关闭条件检查的块
-        procedureCode.push(`      )`);
-        // 关闭循环
-        procedureCode.push(`      )`);
-        // 关闭循环终止的外层块
-        procedureCode.push(`    )`);
+        // 这里应该已经包含了循环体内的所有操作
+        // 循环条件检查在循环体之后进行
+        procedureCode.push(`        (block $${labelInfo.condition}`); // 条件检查块
+
+        // 注意：这里假设循环条件已经在循环开始处被评估
+        // 如果条件满足，使用br_if跳回循环开始
+        procedureCode.push(`          (br_if $${labelInfo.start})`);
+        procedureCode.push(`        )`); // 结束条件检查块
+
+        procedureCode.push(`      )`); // 结束循环开始的块
+        procedureCode.push(`    )`); // 结束循环结束的块
         break;
     }
   },

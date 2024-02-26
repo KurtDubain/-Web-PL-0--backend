@@ -77,7 +77,7 @@ const intermediateCodeGenerator = {
       case "WhileStatement":
         intermediateCode.push("WHILE");
         this.generateCodeFromNode(node.condition, intermediateCode);
-        this.generateCodeFromNode(node.body, intermediateCode);
+        this.generateCodeFromNode(node.doStatement, intermediateCode);
         intermediateCode.push("ENDWHILE");
         break;
 
