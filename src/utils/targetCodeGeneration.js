@@ -239,19 +239,11 @@ const targetCodeGenerator = {
           procedureCode.push(`      (i32.le_s)`);
           procedureCode.push(`      (br_if $${labelInfo.end})`);
         }
-        // console.log(labelInfo);
+
         break;
       case "ENDFOR":
-        // this.isInLoop = false; // 标记离开循环体
-        // console.log(labelInfo);
         labelInfo = this.loopLabelsStack.pop();
         // 将循环体内的操作插入到 procedureCode
-        // this.currentLoopOperations.forEach((op) => procedureCode.push(op));
-        // this.currentLoopOperations = []; // 清空循环体操作集合
-        // procedureCode.push(`        (i32.const 1)`);
-        // procedureCode.push(`        (get_local $${labelInfo.var})`);
-        // procedureCode.push(`        (i32.add)`);
-        // procedureCode.push(`        (set_local $${labelInfo.var})`);
 
         // 添加比较循环变量和结束条件，决定是否跳出循环
         procedureCode.push(`        (get_local $${labelInfo.var})`);
