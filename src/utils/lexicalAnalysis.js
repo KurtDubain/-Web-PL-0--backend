@@ -1,7 +1,9 @@
+// 词法分析
 const lexAnalyzer = {
   analyze: function (code) {
     const tokens = [];
     let currentToken = "";
+    // 对关键词的定义
     const keywords = [
       "const",
       "var",
@@ -22,10 +24,13 @@ const lexAnalyzer = {
     // 将分号、逗号、句号从operators移除，单独处理
     const operators = ["+", "-", "*", "/", "=", "<", "<=", ">", ">="];
     const equals = [":="]; // 特殊符号：分号、逗号、句号
+    // 空格
     const isWhitespace = (char) => /\s/.test(char);
+    // 字母
     const isLetter = (char) => /[a-zA-Z]/.test(char);
+    // 数字
     const isDigit = (char) => /\d/.test(char);
-
+    // 处理token
     const addToken = (type, value) => {
       tokens.push({ type, value });
       currentToken = "";
@@ -108,6 +113,7 @@ const lexAnalyzer = {
         currentToken
       );
     }
+    // EOF表示终止符
     tokens.push({ type: "EOF", value: null });
 
     return tokens;

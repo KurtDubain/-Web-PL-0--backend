@@ -2,13 +2,14 @@
 // 语法分析器对象
 // 语法分析器对象
 const syntaxAnalyzer = {
-  tokens: [],
-  currentTokenIndex: 0,
-  symbolTable: {},
+  tokens: [], // 用于存储每个token
+  currentTokenIndex: 0, //当前位置
+  symbolTable: {}, //变量、过程追踪表
+  // 获取当前位置的字符
   get currentToken() {
     return this.tokens[this.currentTokenIndex];
   },
-
+  // 位置加一
   advance() {
     this.currentTokenIndex++;
   },
