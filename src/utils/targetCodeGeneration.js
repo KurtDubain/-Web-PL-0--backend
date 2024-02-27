@@ -103,7 +103,7 @@ const targetCodeGenerator = {
         case "FOR":
         case "ENDFOR":
           // 处理循环语句
-          if (operand1 != undefined && operand2 != undefined) {
+          if (operand1 != undefined || operand2 != undefined) {
             this.handleLoop(
               operation,
               operand1,
@@ -229,8 +229,15 @@ const targetCodeGenerator = {
             var: operand1,
           };
           this.loopLabelsStack.push(labelInfo);
+          procedureCode.push(`    (set_local $${operand1})`);
           procedureCode.push(`    (block $${labelInfo.end}`);
           procedureCode.push(`      (loop $${labelInfo.start}`);
+          procedureCode.push(`      (get_local $${operand1})`);
+        } else if (operand2 == "TO") {
+          labelInfo = this.loopLabelsStack.pop();
+          this.loopLabelsStack.push(labelInfo);
+          procedureCode.push(`      (i32.le_s)`);
+          procedureCode.push(`      (br_if $${labelInfo.end})`);
         }
         // console.log(labelInfo);
         break;
@@ -241,16 +248,16 @@ const targetCodeGenerator = {
         // 将循环体内的操作插入到 procedureCode
         // this.currentLoopOperations.forEach((op) => procedureCode.push(op));
         // this.currentLoopOperations = []; // 清空循环体操作集合
-        procedureCode.push(`        (i32.const 1)`);
-        procedureCode.push(`        (get_local $${labelInfo.var})`);
-        procedureCode.push(`        (i32.add)`);
-        procedureCode.push(`        (set_local $${labelInfo.var})`);
+        // procedureCode.push(`        (i32.const 1)`);
+        // procedureCode.push(`        (get_local $${labelInfo.var})`);
+        // procedureCode.push(`        (i32.add)`);
+        // procedureCode.push(`        (set_local $${labelInfo.var})`);
 
         // 添加比较循环变量和结束条件，决定是否跳出循环
         procedureCode.push(`        (get_local $${labelInfo.var})`);
-        procedureCode.push(`        (i32.const )`);
-        procedureCode.push(`        (i32.le_s)`);
-        procedureCode.push(`        (br_if $${labelInfo.end})`);
+        procedureCode.push(`        (i32.const 1)`);
+        procedureCode.push(`        (i32.add)`);
+        // procedureCode.push(`        (br_if $${labelInfo.end})`);
 
         procedureCode.push(`        br $${labelInfo.start}`);
         procedureCode.push(`      )`);
@@ -267,6 +274,7 @@ const targetCodeGenerator = {
         this.loopLabelsStack.push(labelInfo);
         // 开始循环，首先跳转到条件检查
         procedureCode.push(`    (block $${labelInfo.end}`); // 循环终止的外层块
+
         procedureCode.push(`      (loop $${labelInfo.start}`); // 实际循环开始的地方
         // 首次进入循环，跳转到条件检查
         break;

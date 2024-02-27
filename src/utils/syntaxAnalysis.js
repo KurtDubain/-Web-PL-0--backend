@@ -314,6 +314,7 @@ const syntaxAnalyzer = {
     if (this.currentToken.value === "begin") {
       // 如果是begin，则预期为多条语句，使用beginEndStatement解析
       thenStatement = this.beginEndStatement();
+      this.match("Semicolon");
     } else {
       // 否则，解析单条语句
       // thenStatement = this.parseSingleStatement();
@@ -337,7 +338,7 @@ const syntaxAnalyzer = {
       } else {
         if (this.currentToken.value === "begin") {
           elseStatement = this.beginEndStatement();
-          // this.match("Semicolon");
+          this.match("Semicolon");
         } else {
           elseStatement = this.statement();
           // this.match("Semicolon");
@@ -397,7 +398,7 @@ const syntaxAnalyzer = {
       }
     }
     this.match("Keyword", "end"); // Match 'end'
-
+    // this.match("Semicolon");
     return {
       type: "BeginEndBlock",
       statements,
