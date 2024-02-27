@@ -103,15 +103,21 @@ const targetCodeGenerator = {
         case "FOR":
         case "ENDFOR":
           // 处理循环语句
-          if (operand1 != undefined) {
+          if (operand1 != undefined && operand2 != undefined) {
             this.handleLoop(
               operation,
               operand1,
+              operand2,
               procedureCode[currentProcedure]
             );
           } else {
             // 如果operand1是undefined，可能表示当前操作不需要operand，调整方法调用以反映这一点
-            this.handleLoop(operation, null, procedureCode[currentProcedure]);
+            this.handleLoop(
+              operation,
+              null,
+              null,
+              procedureCode[currentProcedure]
+            );
           }
           break;
       }
@@ -209,22 +215,24 @@ const targetCodeGenerator = {
     }
   },
 
-  handleLoop(operation, operand, procedureCode) {
+  handleLoop(operation, operand1, operand2, procedureCode) {
     let labelInfo;
     // console.log(operand);
     switch (operation) {
       case "FOR":
         // this.isInLoop = true; // 标记进入循环体
         // this.currentLoopOperations = []; // 初始化循环体操作集合
-        labelInfo = {
-          start: this.generateLabel(),
-          end: this.generateLabel(),
-          var: operand,
-        };
-        this.loopLabelsStack.push(labelInfo);
-        procedureCode.push(`    (block $${labelInfo.end}`);
-        procedureCode.push(`      (loop $${labelInfo.start}`);
-        console.log(labelInfo);
+        if (operand2 == "INIT") {
+          labelInfo = {
+            start: this.generateLabel(),
+            end: this.generateLabel(),
+            var: operand1,
+          };
+          this.loopLabelsStack.push(labelInfo);
+          procedureCode.push(`    (block $${labelInfo.end}`);
+          procedureCode.push(`      (loop $${labelInfo.start}`);
+        }
+        // console.log(labelInfo);
         break;
       case "ENDFOR":
         // this.isInLoop = false; // 标记离开循环体
@@ -233,15 +241,15 @@ const targetCodeGenerator = {
         // 将循环体内的操作插入到 procedureCode
         // this.currentLoopOperations.forEach((op) => procedureCode.push(op));
         // this.currentLoopOperations = []; // 清空循环体操作集合
-        procedureCode.push(`        (get_local $${labelInfo.var})`);
         procedureCode.push(`        (i32.const 1)`);
+        procedureCode.push(`        (get_local $${labelInfo.var})`);
         procedureCode.push(`        (i32.add)`);
         procedureCode.push(`        (set_local $${labelInfo.var})`);
 
         // 添加比较循环变量和结束条件，决定是否跳出循环
         procedureCode.push(`        (get_local $${labelInfo.var})`);
-        procedureCode.push(`        (i32.const /* 循环结束值 */)`);
-        procedureCode.push(`        (i32.gt_s)`);
+        procedureCode.push(`        (i32.const )`);
+        procedureCode.push(`        (i32.le_s)`);
         procedureCode.push(`        (br_if $${labelInfo.end})`);
 
         procedureCode.push(`        br $${labelInfo.start}`);
