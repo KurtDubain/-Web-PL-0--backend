@@ -56,6 +56,7 @@ const syntaxAnalyzer = {
         this.advance();
       }
     }
+    console.log(this.currentToken);
     return {
       type: "Program",
       children: nodes,
@@ -330,12 +331,25 @@ const syntaxAnalyzer = {
         this.match("Keyword", "if");
         const elseifCondition = this.expression();
         this.match("Keyword", "then");
-        const elseifThenStatement = this.statement();
+        if (this.currentToken.value === "begin") {
+          // 如果是begin，则预期为多条语句，使用beginEndStatement解析
+          const elseifThenStatement = this.beginEndStatement();
+          this.match("Semicolon");
+          elseIfStatements.push({
+            condition: elseifCondition,
+            thenStatement: elseifThenStatement,
+          });
+        } else {
+          // 否则，解析单条语句
+          // thenStatement = this.parseSingleStatement();
+          const elseifThenStatement = this.statement();
+          // this.match("Semicolon");
+          elseIfStatements.push({
+            condition: elseifCondition,
+            thenStatement: elseifThenStatement,
+          });
+        }
         // this.match("Semicolon");
-        elseIfStatements.push({
-          condition: elseifCondition,
-          thenStatement: elseifThenStatement,
-        });
       } else {
         if (this.currentToken.value === "begin") {
           elseStatement = this.beginEndStatement();

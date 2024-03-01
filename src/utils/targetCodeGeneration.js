@@ -92,8 +92,8 @@ const targetCodeGenerator = {
           // procedureCode[currentProcedure].push(codeLine);
           this.handleCondition(
             operation,
-            operand1,
-            operand2,
+            null,
+            null,
             procedureCode[currentProcedure]
           );
           break;
@@ -158,6 +158,10 @@ const targetCodeGenerator = {
           "-": "i32.sub",
           "*": "i32.mul",
           "/": "i32.div_s",
+          ">=": "i32.ge_s",
+          "<=": "i32.le_s",
+          "=": "i32.eq",
+          "<>": "i32.ne",
           // 添加其他必要的操作符支持
         };
         if (operation === "OPER" && operators[operand1]) {
@@ -189,14 +193,15 @@ const targetCodeGenerator = {
     switch (operation) {
       case "IF":
         // 开始新的if条件
-        procedureCode.push(`    (if (result i32)`); // 条件表达式应该在此之前被评估
+        procedureCode.push(`    (if (result i32) (then`); // 条件表达式应该在此之前被评估
         this.conditionStack.push("IF");
         break;
       case "ELSEIF":
         // 结束前一个if或elseif块，并开始一个新的elseif块
-        procedureCode.push(`    (else`);
+        procedureCode.push(`    )`);
+        procedureCode.splice(procedureCode.length - 4, 0, `    (else`);
         this.conditionStack.pop(); // 移除上一个IF或ELSEIF
-        procedureCode.push(`    (if (result i32)`); // ELSEIF作为新的if开始
+        procedureCode.push(`    (if (result i32) (then`); // ELSEIF作为新的if开始
         this.conditionStack.push("IF");
         break;
       case "ELSE":
