@@ -27,6 +27,34 @@ const compilerController = {
       };
     }
   },
+  async runCode(ctx) {
+    try {
+      const { data } = ctx.request.body;
+      // console.log(data)
+      // 调用编译器的功能
+      const compiledResult = await compilerModel.compileCode(
+        data.code,
+        data.options
+      );
+      const runResult = await compilerModel.runCode(
+        compiledResult.TargetCodeGeneration
+      );
+      ctx.status = 200;
+      ctx.body = {
+        success: true,
+        message: "执行成功",
+        result: runResult,
+      };
+    } catch (error) {
+      console.error("执行异常", error);
+      ctx.status = 500;
+      ctx.body = {
+        success: false,
+        message: "执行失败",
+        error: error.message,
+      };
+    }
+  },
 };
 
 module.exports = compilerController;

@@ -4,6 +4,7 @@ const lexicalAnalyzer = require("../utils/lexicalAnalysis");
 const semanticAnalyzer = require("../utils/semanticAnalysis");
 const syntaxAnalyzer = require("../utils/syntaxAnalysis");
 const generateTargetCode = require("../utils/targetCodeGeneration");
+const wabt = require("wabt");
 // 编译操作数据模型
 const compilerModel = {
   // 编译功能
@@ -93,6 +94,17 @@ const compilerModel = {
     } catch (error) {
       console.error(`目标代码生成出错了: ${error.message}`);
       return `目标代码生成错误: ${error.message}`;
+    }
+  },
+  async runCode(wat) {
+    try {
+      const wabtModule = await wabt();
+      const wasmModule = wabtModule.parseWat("example.wat", wat);
+      const { buffer } = wasmModule.toBinary({});
+      return buffer;
+    } catch (error) {
+      console.error(error);
+      return null;
     }
   },
 };

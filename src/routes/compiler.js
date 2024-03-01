@@ -6,5 +6,6 @@ const router = new Router();
 
 // Routes related to compiler
 router.post("/compile", compilerController.compileCode);
+router.post("/compile/run", compilerController.runCode);
 
 module.exports = router;
