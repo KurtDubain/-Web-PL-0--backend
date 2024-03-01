@@ -279,7 +279,7 @@ const targetCodeGenerator = {
         // 循环体开始前的条件检查，因为'WHILE'后立即是条件
         const currentLabelInfo =
           this.loopLabelsStack[this.loopLabelsStack.length - 1];
-        procedureCode.push(`        (i32.eqz)`);
+        // procedureCode.push(`        (i32.eqz)`);
         procedureCode.push(`        (br_if $${currentLabelInfo.end})`); // 如果条件不满足，则跳出循环
         break;
       case "ENDWHILE":
