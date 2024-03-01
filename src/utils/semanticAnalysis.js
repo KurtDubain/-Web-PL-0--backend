@@ -15,6 +15,7 @@ const semanticAnalyzer = {
 
   // 根据节点类型分发到具体的处理方法
   processNode(node) {
+    console.log(node);
     switch (node.type) {
       case "Program":
       case "Block":
@@ -50,7 +51,9 @@ const semanticAnalyzer = {
       case "WriteStatement":
         this.processWriteStatement(node);
         break;
-
+      case "BinaryExpression":
+        this.processBinaryExpression(node);
+        break;
       default:
         console.warn(`Unhandled node type: ${node.type}`);
     }
@@ -119,7 +122,7 @@ const semanticAnalyzer = {
   processWhileStatement(node) {
     // 分析条件表达式和循环体
     this.processNode(node.condition);
-    this.processNode(node.body);
+    this.processNode(node.doStatement);
   },
 
   processForStatement(node) {
@@ -140,6 +143,12 @@ const semanticAnalyzer = {
     // 对于'write'语句，需要确保其表达式中的变量已声明
     this.processExpression(node.expression); // 假设已存在处理表达式的方法
   },
+  processBinaryExpression(node) {
+    // 处理左子节点
+    this.processExpression(node.left);
+    // 处理右子节点
+    this.processExpression(node.right);
+  },
   processExpression(expression) {
     switch (expression.type) {
       case "Identifier":
@@ -149,8 +158,7 @@ const semanticAnalyzer = {
         }
         break;
       case "BinaryExpression":
-        this.processExpression(expression.left);
-        this.processExpression(expression.right);
+        this.processBinaryExpression(expression);
         break;
       // 处理其他表达式类型...
     }
