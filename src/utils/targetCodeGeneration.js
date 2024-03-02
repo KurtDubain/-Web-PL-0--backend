@@ -36,20 +36,20 @@ const targetCodeGenerator = {
           } else {
             // 全局变量的处理逻辑
             if (!globalVars.has(operand1)) {
-              watCode.push(`  (local $${operand1} i32)`);
+              watCode.push(`  (global $${operand1} (mut i32) (i32.const 0))`);
               globalVars.add(operand1);
             }
           }
           break;
         case "CONST":
           if (!localVars.has(operand1)) {
-            watCode.push(`  (local $${operand1} i32)`);
+            watCode.push(`  (global $${operand1} (mut i32) (i32.const 0))`);
             localVars.add(operand1);
           }
           if (operation === "CONST") {
             procedureCode[currentProcedure].push(`    (i32.const ${operand2})`);
             procedureCode[currentProcedure].push(
-              `    (set_local $${operand1})`
+              `    (global.set $${operand1})`
             );
           }
           break;
@@ -75,7 +75,9 @@ const targetCodeGenerator = {
             watCode.push(`  (func ${currentProcedure} (export "${operand1}")`);
             if (localVars[currentProcedure]) {
               localVars[currentProcedure].forEach((varName) => {
-                watCode.push(`    (local $${varName} i32)`);
+                watCode.push(
+                  `    (global $${varName} (mut i32) (i32.const 0))`
+                );
               });
             }
             watCode = watCode.concat(procedureCode[currentProcedure]);
@@ -139,15 +141,15 @@ const targetCodeGenerator = {
     let codeLine = "";
     switch (operation) {
       case "LOAD":
-        return `    (get_local $${operand1})`;
+        return `    (global.get $${operand1})`;
       case "STORE":
-        return `    (set_local $${operand1})`;
+        return `    (global.set $${operand1})`;
       case "PUSH":
         return `    (i32.const ${operand1})`;
       case "CALL":
         return `    (call $${operand1})`;
       case "READ":
-        return `    (call $read)\n    (set_local $${operand1})`;
+        return `    (call $read)\n    (global.set $${operand1})`;
       case "WRITE":
         return `    (call $log)`;
       case "OPER":
@@ -169,9 +171,9 @@ const targetCodeGenerator = {
         }
         break;
       case "INIT_LOOP_VAR":
-        return `    (i32.const ${operand2})\n    (set_local $${operand1})`; // 假设operand2是初始值
+        return `    (i32.const ${operand2})\n    (global.set $${operand1})`; // 假设operand2是初始值
       case "INCREMENT_LOOP_VAR":
-        return `    (get_local $${operand1})\n    (i32.const 1)\n    (i32.add)\n    (set_local $${operand1})`;
+        return `    (global.get $${operand1})\n    (i32.const 1)\n    (i32.add)\n    (global.set $${operand1})`;
       default:
         return "";
     }
@@ -193,28 +195,41 @@ const targetCodeGenerator = {
     switch (operation) {
       case "IF":
         // 开始新的if条件
-        procedureCode.push(`    (if (result i32) (then`); // 条件表达式应该在此之前被评估
+        procedureCode.push(`    (if  (then`); // 条件表达式应该在此之前被评估
         this.conditionStack.push("IF");
         break;
       case "ELSEIF":
         // 结束前一个if或elseif块，并开始一个新的elseif块
-        procedureCode.push(`    )`);
-        procedureCode.splice(procedureCode.length - 4, 0, `    (else`);
-        this.conditionStack.pop(); // 移除上一个IF或ELSEIF
-        procedureCode.push(`    (if (result i32) (then`); // ELSEIF作为新的if开始
-        this.conditionStack.push("IF");
+        // procedureCode.push(`    )`);
+        procedureCode.splice(
+          procedureCode.length - 3,
+          0,
+          `     )\n      (else`
+        );
+        this.conditionStack.push("ELSEIF"); // 移除上一个IF或ELSEIF
+        procedureCode.push(`    (if  (then`); // ELSEIF作为新的if开始
+        // this.conditionStack.push("IF");
         break;
       case "ELSE":
         // 开始else块
-        procedureCode.push(`    (else`);
-        this.conditionStack.pop(); // 移除上一个IF或ELSEIF
+        procedureCode.push(`    )\n    (else`);
+        // this.conditionStack.pop(); // 移除上一个IF或ELSEIF
+        // if (this.conditionStack[this.conditionStack.length - 1] === "IF") {
+        //   this.conditionStack.pop();
+        // }
+        // this.conditionStack.push("ELSE")
         this.conditionStack.push("ELSE");
         break;
       case "ENDIF":
         // 结束当前的if或else块
         while (this.conditionStack.length > 0) {
           let cond = this.conditionStack.pop();
-          procedureCode.push(cond === "IF" ? "    )" : ""); // 对于IF，添加结束标记，ELSE不需要
+          // procedureCode.push("    )\n     )\n"); // 对于IF，添加结束标记，ELSE不需要
+          if (cond === "ELSE" || cond === "IF") {
+            procedureCode.push("    )\n");
+          } else if (cond === "ELSEIF") {
+            procedureCode.push("    )\n     )\n");
+          }
         }
         break;
     }
@@ -234,10 +249,10 @@ const targetCodeGenerator = {
             var: operand1,
           };
           this.loopLabelsStack.push(labelInfo);
-          procedureCode.push(`    (set_local $${operand1})`);
+          procedureCode.push(`    (global.set $${operand1})`);
           procedureCode.push(`    (block $${labelInfo.end}`);
           procedureCode.push(`      (loop $${labelInfo.start}`);
-          procedureCode.push(`      (get_local $${operand1})`);
+          procedureCode.push(`      (global.get $${operand1})`);
         } else if (operand2 == "TO") {
           labelInfo = this.loopLabelsStack.pop();
           this.loopLabelsStack.push(labelInfo);
@@ -251,7 +266,7 @@ const targetCodeGenerator = {
         // 将循环体内的操作插入到 procedureCode
 
         // 添加比较循环变量和结束条件，决定是否跳出循环
-        procedureCode.push(`        (get_local $${labelInfo.var})`);
+        procedureCode.push(`        (global.get $${labelInfo.var})`);
         procedureCode.push(`        (i32.const 1)`);
         procedureCode.push(`        (i32.add)`);
         // procedureCode.push(`        (br_if $${labelInfo.end})`);
@@ -279,7 +294,8 @@ const targetCodeGenerator = {
         // 循环体开始前的条件检查，因为'WHILE'后立即是条件
         const currentLabelInfo =
           this.loopLabelsStack[this.loopLabelsStack.length - 1];
-        // procedureCode.push(`        (i32.eqz)`);
+        procedureCode.push(`        (i32.eqz)`);
+
         procedureCode.push(`        (br_if $${currentLabelInfo.end})`); // 如果条件不满足，则跳出循环
         break;
       case "ENDWHILE":
