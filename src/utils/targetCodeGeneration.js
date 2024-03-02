@@ -256,7 +256,8 @@ const targetCodeGenerator = {
         } else if (operand2 == "TO") {
           labelInfo = this.loopLabelsStack.pop();
           this.loopLabelsStack.push(labelInfo);
-          procedureCode.push(`      (i32.le_s)`);
+          procedureCode.push(`      (i32.lt_s)`);
+          procedureCode.push(`      (i32.eqz)`);
           procedureCode.push(`      (br_if $${labelInfo.end})`);
         }
 
@@ -269,6 +270,7 @@ const targetCodeGenerator = {
         procedureCode.push(`        (global.get $${labelInfo.var})`);
         procedureCode.push(`        (i32.const 1)`);
         procedureCode.push(`        (i32.add)`);
+        procedureCode.push(`        (global.set $${labelInfo.var})`);
         // procedureCode.push(`        (br_if $${labelInfo.end})`);
 
         procedureCode.push(`        br $${labelInfo.start}`);
