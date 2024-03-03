@@ -3,6 +3,7 @@ const lexAnalyzer = {
   analyze: function (code) {
     const tokens = [];
     let currentToken = "";
+    let currentLine = 1;
     // 对关键词的定义
     const keywords = [
       "const",
@@ -31,14 +32,17 @@ const lexAnalyzer = {
     // 数字
     const isDigit = (char) => /\d/.test(char);
     // 处理token
-    const addToken = (type, value) => {
-      tokens.push({ type, value });
+    const addToken = (type, value, line = currentLine) => {
+      tokens.push({ type, value, line });
       currentToken = "";
     };
 
     for (let i = 0; i < code.length; i++) {
       const char = code[i];
       const nextChar = code[i + 1];
+      if (char === "\n") {
+        currentLine++;
+      }
 
       if (isWhitespace(char)) {
         if (currentToken !== "") {
@@ -114,7 +118,7 @@ const lexAnalyzer = {
       );
     }
     // EOF表示终止符
-    tokens.push({ type: "EOF", value: null });
+    tokens.push({ type: "EOF", value: null, line: currentLine });
 
     return tokens;
   },

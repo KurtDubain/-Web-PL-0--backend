@@ -60,6 +60,7 @@ const syntaxAnalyzer = {
     return {
       type: "Program",
       children: nodes,
+      line: this.currentToken.line,
     };
   },
   peek() {
@@ -73,7 +74,11 @@ const syntaxAnalyzer = {
     // A block can contain a declaration followed by a statement
     const declarationNode = this.declaration();
     const statementNode = this.statement();
-    return { type: "Block", children: [declarationNode, statementNode] };
+    return {
+      type: "Block",
+      children: [declarationNode, statementNode],
+      line: this.currentToken.line,
+    };
   },
 
   declaration() {
@@ -90,11 +95,13 @@ const syntaxAnalyzer = {
           this.match("Identifier");
           this.match("Equals");
           const constValue = parseInt(this.currentToken.value, 10); // 假设值是整数
+          const constLine = parseInt(this.currentToken.line);
           this.match("Number");
           declarations.push({
             type: "ConstDeclaration",
             name: constName,
             value: constValue,
+            line: constLine,
           });
           this.symbolTable[constName] = { type: "Constant", value: constValue }; // 更新符号表
           if (this.currentToken.type !== "Comma") break;
@@ -104,8 +111,13 @@ const syntaxAnalyzer = {
         this.match("Keyword"); // 匹配 'var'
         do {
           const varName = this.currentToken.value;
+          const varLine = this.currentToken.line;
           this.match("Identifier");
-          declarations.push({ type: "VarDeclaration", name: varName });
+          declarations.push({
+            type: "VarDeclaration",
+            name: varName,
+            line: varLine,
+          });
           this.symbolTable[varName] = { type: "Variable", value: undefined }; // 更新符号表，初始值为undefined
           if (this.currentToken.type !== "Comma") break;
           this.match("Comma");
@@ -113,7 +125,11 @@ const syntaxAnalyzer = {
       }
       this.match("Semicolon");
     }
-    return { type: "Declaration", children: declarations };
+    return {
+      type: "Declaration",
+      children: declarations,
+      line: this.currentToken.line,
+    };
   },
 
   statement() {
@@ -128,7 +144,11 @@ const syntaxAnalyzer = {
         // 处理过程调用
         this.match("Identifier");
         this.match("Semicolon");
-        statementNode = { type: "ProcedureCall", name: identifier };
+        statementNode = {
+          type: "ProcedureCall",
+          name: identifier,
+          line: this.currentToken.line,
+        };
       } else {
         this.match("Identifier");
         this.match("Equals", ":=");
@@ -137,6 +157,7 @@ const syntaxAnalyzer = {
           type: "AssignmentStatement",
           identifier,
           expression: expressionNode,
+          line: this.currentToken.line,
         };
       }
     } else if (this.currentToken.type === "Keyword") {
@@ -194,6 +215,7 @@ const syntaxAnalyzer = {
   },
   parseAssignmentStatement() {
     const identifier = this.currentToken.value; // 当前token应为变量名
+    const line = this.currentToken.line;
     this.match("Identifier"); // 消费变量名
     this.match("Equals", ":="); // 消费赋值操作符
     const expression = this.expression(); // 解析赋值右侧的表达式
@@ -202,36 +224,43 @@ const syntaxAnalyzer = {
       type: "AssignmentStatement",
       identifier: identifier,
       expression: expression,
+      line: line,
     };
   },
   parseProcedureCall() {
     this.match("Keyword", "call");
+    const line = this.currentToken.line;
     const procedureName = this.currentToken.value; // 当前token为过程名
     this.match("Identifier"); // 消费过程名
     this.match("Semicolon"); // 过程调用结束后应有分号
     return {
       type: "ProcedureCall",
       name: procedureName,
+      line: line,
     };
   },
   parseReadStatement() {
     this.match("Keyword", "read");
+    const line = this.currentToken.line;
     const variableName = this.currentToken.value;
     this.match("Identifier"); // 消费变量名
     this.match("Semicolon"); // 语句结束
     return {
       type: "ReadStatement",
       variableName,
+      line: line,
     };
   },
 
   parseWriteStatement() {
     this.match("Keyword", "write");
+    const line = this.currentToken.line;
     const expressionNode = this.expression(); // 解析要输出的表达式
     this.match("Semicolon"); // 语句结束
     return {
       type: "WriteStatement",
       expression: expressionNode,
+      line: line,
     };
   },
 
@@ -242,6 +271,7 @@ const syntaxAnalyzer = {
       ["<", "<=", "=", "<>", ">", ">="].includes(this.currentToken.value)
     ) {
       const operator = this.currentToken.value;
+      const line = this.currentToken.line;
       this.match("Operator"); // 匹配比较操作符
       let right = this.arithmeticExpression(); // 再次解析算术表达式作为右侧
       // 构建比较表达式的AST节点
@@ -250,6 +280,7 @@ const syntaxAnalyzer = {
         operator: operator,
         left: left,
         right: right,
+        line: line,
       };
     }
     return left;
@@ -259,6 +290,7 @@ const syntaxAnalyzer = {
     let node = this.term();
     while (this.currentToken && ["+", "-"].includes(this.currentToken.value)) {
       const operator = this.currentToken.value;
+      const line = this.currentToken.line;
       this.match("Operator", operator); // 匹配加减运算符
       const right = this.term(); // 解析右侧的term
       node = {
@@ -266,6 +298,7 @@ const syntaxAnalyzer = {
         operator: operator,
         left: node,
         right: right,
+        line: line,
       };
     }
     return node;
@@ -275,6 +308,7 @@ const syntaxAnalyzer = {
     let node = this.factor();
     while (this.currentToken && ["*", "/"].includes(this.currentToken.value)) {
       const operator = this.currentToken.value;
+      const line = this.currentToken.line;
       this.match("Operator", operator); // 匹配乘除运算符
       const right = this.factor(); // 解析右侧的factor
       node = {
@@ -282,6 +316,7 @@ const syntaxAnalyzer = {
         operator: operator,
         left: node,
         right: right,
+        line: line,
       };
     }
     return node;
@@ -290,11 +325,19 @@ const syntaxAnalyzer = {
   factor() {
     // 这个方法需要解析数字和括号内的表达式
     if (this.currentToken.type === "Number") {
-      const node = { type: "Literal", value: this.currentToken.value };
+      const node = {
+        type: "Literal",
+        value: this.currentToken.value,
+        line: this.currentToken.line,
+      };
       this.advance(); // 前进到下一个token
       return node;
     } else if (this.currentToken.type === "Identifier") {
-      const node = { type: "Identifier", name: this.currentToken.value };
+      const node = {
+        type: "Identifier",
+        name: this.currentToken.value,
+        line: this.currentToken.line,
+      };
       this.advance(); // 前进到下一个token
       return node;
     } else if (this.currentToken.value === "(") {
@@ -310,7 +353,7 @@ const syntaxAnalyzer = {
     this.match("Keyword", "if"); // 匹配 'if'
     const condition = this.expression(); // 解析条件表达式
     this.match("Keyword", "then"); // 匹配 'then'
-
+    const ifLine = this.currentToken.line;
     let thenStatement = null;
     // 直接检查下一个token，决定是解析单条语句还是多条语句
     if (this.currentToken.value === "begin") {
@@ -368,19 +411,27 @@ const syntaxAnalyzer = {
       thenStatement: thenStatement,
       elseIfStatement: elseIfStatements,
       elseStatement: elseStatement,
+      line: ifLine,
     };
   },
 
   whileStatement() {
     this.match("Keyword", "while"); // Match 'while'
     const condition = this.expression(); // Parse condition
+    const line = this.currentToken.line;
     this.match("Keyword", "do"); // Match 'do'
     const doStatement = this.statement(); // Parse the statement to execute as long as condition is true
-    return { type: "WhileStatement", condition, doStatement };
+    return {
+      type: "WhileStatement",
+      condition,
+      doStatement,
+      line: line,
+    };
   },
   procedureStatement() {
     this.match("Keyword"); // Match 'procedure'
     const procedureName = this.currentToken.value;
+    const line = this.currentToken.line;
     this.match("Identifier"); // Match procedure name
 
     this.match("Semicolon"); // Match semicolon after procedure declaration
@@ -393,12 +444,13 @@ const syntaxAnalyzer = {
       type: "ProcedureDeclaration",
       name: procedureName,
       body: blockNode,
+      line: line,
     };
   },
   beginEndStatement() {
     this.match("Keyword", "begin"); // Match 'begin'
     const statements = [];
-
+    const line = this.currentToken.line;
     while (this.currentToken.value !== "end") {
       const statementNode = this.statement();
       statements.push(statementNode);
@@ -417,11 +469,13 @@ const syntaxAnalyzer = {
     return {
       type: "BeginEndBlock",
       statements,
+      line: line,
     };
   },
   forStatement() {
     this.match("Keyword", "for"); // Match 'for'
     const variableName = this.currentToken.value;
+    const forLine = this.currentToken.line;
     this.match("Identifier"); // Match <identifier>
     this.match("Equals", ":="); // Match ':='
     const initialValue = this.expression(); // Parse <initial-value>
@@ -449,6 +503,7 @@ const syntaxAnalyzer = {
       initialValue: initialValue,
       finalValue: finalValue,
       body: loopBody,
+      line: forLine,
     };
   },
 
