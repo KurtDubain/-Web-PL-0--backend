@@ -60,7 +60,24 @@ class Debugger {
     console.log(`Executing line ${line}`);
     // 更新变量状态等操作...
   }
+  loadSemanticAnalysisResult(result) {
+    // 加载变量和常量
+    for (const [name, info] of Object.entries(result)) {
+      if (info.type === "VarDeclaration" || info.type === "ConstDeclaration") {
+        // 对变量和常量统一处理
+        this.symbolTable[name] = { value: info.value ?? null }; // 使用info.value初始化，对于ConstDeclaration通常不为null
+      }
+      // 如果需要处理过程中的变量，可以在这里增加逻辑
+    }
+  }
 
+  // 显示变量和常量的初始状态
+  showInitialVariableStates() {
+    console.log("Initial variable and constant states:");
+    for (let [name, info] of Object.entries(this.symbolTable)) {
+      console.log(`${name}: ${info.value}`);
+    }
+  }
   // 其他调试操作，如查看/修改变量值等
 }
 module.exports = Debugger;
