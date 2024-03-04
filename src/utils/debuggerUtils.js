@@ -63,3 +63,4 @@ class Debugger {
 
   // 其他调试操作，如查看/修改变量值等
 }
+module.exports = Debugger;
