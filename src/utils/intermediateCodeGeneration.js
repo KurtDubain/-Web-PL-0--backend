@@ -2,7 +2,12 @@ const intermediateCodeGenerator = {
   generateIntermediateCode(ast) {
     const intermediateCode = [];
     this.generateCodeFromNode(ast, intermediateCode);
-    return intermediateCode;
+    return intermediateCode.map((item) => item.code); // 只返回代码部分
+  },
+  generateIntermediateCodeWithLine(ast) {
+    const intermediateCodeWithLine = [];
+    this.generateCodeFromNode(ast, intermediateCodeWithLine);
+    return intermediateCodeWithLine; // 返回包含代码和行号的对象数组
   },
 
   generateCodeFromNode(node, intermediateCode) {
@@ -24,89 +29,85 @@ const intermediateCodeGenerator = {
 
       case "Declaration":
         node.children.forEach((decl) => {
-          if (decl.type === "VarDeclaration") {
-            intermediateCode.push(`DECLARE ${decl.name}`);
-          } else if (decl.type === "ConstDeclaration") {
-            intermediateCode.push(`CONST ${decl.name} = ${decl.value}`);
-          }
+          const code =
+            decl.type === "VarDeclaration"
+              ? `DECLARE ${decl.name}`
+              : `CONST ${decl.name} = ${decl.value}`;
+          intermediateCode.push({ code, line: decl.line });
         });
         break;
 
-      case "ProcedureDeclaration":
-        intermediateCode.push(`PROCEDURE ${node.name} START`);
-        this.generateCodeFromNode(node.body, intermediateCode);
-        intermediateCode.push(`PROCEDURE ${node.name} END`);
-        break;
-
       case "AssignmentStatement":
-        this.generateCodeFromNode(node.expression, intermediateCode);
-        intermediateCode.push(`STORE ${node.identifier}`);
-        break;
-
-      case "ProcedureCall":
-        intermediateCode.push(`CALL ${node.name}`);
-        break;
-
-      case "ReadStatement":
-        intermediateCode.push(`READ ${node.variableName}`);
+        this.generateCodeFromNode(node.expression, intermediateCode); // 先处理表达式
+        intermediateCode.push({
+          code: `STORE ${node.identifier}`,
+          line: node.line,
+        });
         break;
 
       case "WriteStatement":
-        this.generateCodeFromNode(node.expression, intermediateCode);
-        intermediateCode.push(`WRITE`);
+        this.generateCodeFromNode(node.expression, intermediateCode); // 先处理表达式
+        intermediateCode.push({ code: `WRITE`, line: node.line });
         break;
 
       case "IfStatement":
         this.generateCodeFromNode(node.condition, intermediateCode);
-        intermediateCode.push("IF");
+        intermediateCode.push({ code: "IF", line: node.line });
         this.generateCodeFromNode(node.thenStatement, intermediateCode);
-        if (node.elseIfStatement && node.elseIfStatement.length > 0) {
-          node.elseIfStatement.forEach((elseif) => {
-            this.generateCodeFromNode(elseif.condition, intermediateCode);
-            intermediateCode.push("ELSEIF");
-            this.generateCodeFromNode(elseif.thenStatement, intermediateCode);
-          });
-        }
         if (node.elseStatement) {
-          intermediateCode.push("ELSE");
+          intermediateCode.push({
+            code: "ELSE",
+            line: node.elseStatement.line,
+          });
           this.generateCodeFromNode(node.elseStatement, intermediateCode);
         }
-        intermediateCode.push("ENDIF");
+        intermediateCode.push({ code: "ENDIF", line: node.line }); // 可能需要调整行号
         break;
 
       case "WhileStatement":
-        intermediateCode.push("WHILE");
+        intermediateCode.push({ code: "WHILE", line: node.line });
         this.generateCodeFromNode(node.condition, intermediateCode);
-        intermediateCode.push("DO"); // 明确标记循环体开始
+        intermediateCode.push({ code: "DO", line: node.line }); // 明确标记循环体开始
         this.generateCodeFromNode(node.doStatement, intermediateCode);
-        intermediateCode.push("ENDWHILE");
+        intermediateCode.push({ code: "ENDWHILE", line: node.line });
         break;
 
       case "ForStatement":
         this.generateCodeFromNode(node.initialValue, intermediateCode);
-        intermediateCode.push(`FOR ${node.variableName} INIT`);
+        intermediateCode.push({
+          code: `FOR ${node.variableName} INIT`,
+          line: node.line,
+        });
         this.generateCodeFromNode(node.finalValue, intermediateCode);
-        intermediateCode.push(`FOR ${node.variableName} TO`);
+        intermediateCode.push({
+          code: `FOR ${node.variableName} TO`,
+          line: node.line,
+        });
         this.generateCodeFromNode(node.body, intermediateCode);
-        intermediateCode.push(`ENDFOR ${node.variableName}`);
+        intermediateCode.push({
+          code: `ENDFOR ${node.variableName}`,
+          line: node.line,
+        });
         break;
 
-      // 处理表达式节点
       case "BinaryExpression":
         this.generateCodeFromNode(node.left, intermediateCode);
         this.generateCodeFromNode(node.right, intermediateCode);
-        intermediateCode.push(`OPER ${node.operator}`);
+        intermediateCode.push({
+          code: `OPER ${node.operator}`,
+          line: node.line,
+        });
         break;
 
       case "Literal":
-        intermediateCode.push(`PUSH ${node.value}`);
+        intermediateCode.push({ code: `PUSH ${node.value}`, line: node.line });
         break;
 
       case "Identifier":
-        intermediateCode.push(`LOAD ${node.name}`);
+        intermediateCode.push({ code: `LOAD ${node.name}`, line: node.line });
         break;
 
-      // 添加对其他节点类型的处理...
+      // 注意：实际中需要添加更多AST节点类型的处理逻辑
 
       default:
         console.warn(`Unhandled node type: ${node.type}`);
