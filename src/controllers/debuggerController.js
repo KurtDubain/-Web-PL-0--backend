@@ -5,7 +5,10 @@ const debuggerController = {
   async debug2point(ctx) {
     try {
       const { data } = ctx.request.body;
-      const pointResult = await debuggerModel.debug2point(data);
+      const pointResult = await debuggerModel.debug2point(
+        data.code.content,
+        data.line
+      );
       ctx.status = 200;
       ctx.body = {
         success: true,

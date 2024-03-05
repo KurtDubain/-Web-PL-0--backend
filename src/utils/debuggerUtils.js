@@ -8,10 +8,11 @@ class Debugger {
     this.intermediateCode = [];
     this.procedures = {};
   }
-
+  // 初始化符号表
   loadSymbolTable(symbolTable) {
     this.symbolTable = symbolTable;
   }
+  // 格式化符号表
   getVariablesInitValues(symbolTable = this.symbolTable, scope = "global") {
     let variablesInitValues = [];
     // console.log(symbolTable);
@@ -37,10 +38,12 @@ class Debugger {
     });
     return variablesInitValues;
   }
+  // 初始化调试信息
   loadDebugInfo(breakPoints, intermediateCode) {
     this.breakpoints.add(breakPoints);
     this.intermediateCode = intermediateCode;
   }
+  // 执行调试中的代码
   executeCodeItem(item) {
     const { code, line } = item;
     const parts = code.split(" ");
@@ -95,6 +98,7 @@ class Debugger {
         console.warn("Unknown instruction:", instruction);
     }
   }
+  // 执行操作符
   executeOperation(operator) {
     const right = this.stack.pop();
     const left = this.stack.pop();
@@ -123,6 +127,7 @@ class Debugger {
         console.warn("Unknown operator:", operator);
     }
   }
+  // 指定到指定行
   executeToLine(debugLine) {
     // 重置状态
     this.stack = [];
