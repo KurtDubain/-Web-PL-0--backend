@@ -78,6 +78,32 @@ class Debugger {
       console.log(`${name}: ${info.value}`);
     }
   }
-  // 其他调试操作，如查看/修改变量值等
+  loadSymbolTable(symbolTable) {
+    this.symbolTable = symbolTable;
+  }
+  getVariablesInitValues(symbolTable = this.symbolTable, scope = "global") {
+    let variablesInitValues = [];
+    Object.entries(symbolTable).forEach(([name, info]) => {
+      if (info.type === "VarDeclaration" || info.type === "ConstDeclaration") {
+        // 直接处理变量和常量声明
+        variablesInitValues.push({
+          name,
+          type: info.type,
+          value: info.value, // 变量或常量的初始化值
+          scope, // 当前作用域
+        });
+      } else if (info.type === "Procedure") {
+        // 对于过程，递归处理其体内的变量
+        const procedureScope = `procedure:${name}`; // 定义过程作用域的标识
+        const procedureVariables = this.getVariablesInitValues(
+          info.body.symbolTable || {},
+          procedureScope
+        );
+        variablesInitValues = variablesInitValues.concat(procedureVariables);
+      }
+      // 可以根据需要处理其他类型
+    });
+    return variablesInitValues;
+  }
 }
 module.exports = Debugger;
