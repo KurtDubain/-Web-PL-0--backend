@@ -4,80 +4,11 @@ class Debugger {
     this.sourceMap = {}; // 源代码映射表
     this.symbolTable = {}; // 从语义分析器获取的符号表
     this.currentLine = 0; // 当前执行到的代码行
+    this.stack = [];
+    this.intermediateCode = [];
+    this.procedures = {};
   }
 
-  // 设置断点
-  setBreakpoint(line) {
-    this.breakpoints.add(line);
-  }
-
-  // 移除断点
-  removeBreakpoint(line) {
-    this.breakpoints.delete(line);
-  }
-
-  // 加载源代码映射表和符号表
-  loadDebugInfo(sourceMap, symbolTable) {
-    this.sourceMap = sourceMap;
-    this.symbolTable = symbolTable;
-  }
-
-  // 执行到下一个断点或程序结束
-  runToBreakpoint() {
-    while (this.currentLine < Object.keys(this.sourceMap).length) {
-      if (this.breakpoints.has(this.currentLine)) {
-        console.log(`Paused at breakpoint: Line ${this.currentLine}`);
-        this.showCurrentVariableStates();
-        break;
-      }
-      this.currentLine++;
-      // 执行当前行的代码
-      this.executeLine(this.currentLine);
-    }
-  }
-
-  // 执行单步
-  step() {
-    this.currentLine++;
-    this.executeLine(this.currentLine);
-    if (this.breakpoints.has(this.currentLine)) {
-      console.log(`Paused at breakpoint: Line ${this.currentLine}`);
-    }
-    this.showCurrentVariableStates();
-  }
-
-  // 显示当前变量的状态
-  showCurrentVariableStates() {
-    console.log("Current variable states:");
-    for (let [varName, varInfo] of Object.entries(this.symbolTable)) {
-      console.log(`${varName}: ${varInfo.value}`);
-    }
-  }
-
-  // 根据行号执行行
-  executeLine(line) {
-    // 这里简化处理，实际中需要根据中间代码和映射表来执行
-    console.log(`Executing line ${line}`);
-    // 更新变量状态等操作...
-  }
-  loadSemanticAnalysisResult(result) {
-    // 加载变量和常量
-    for (const [name, info] of Object.entries(result)) {
-      if (info.type === "VarDeclaration" || info.type === "ConstDeclaration") {
-        // 对变量和常量统一处理
-        this.symbolTable[name] = { value: info.value ?? null }; // 使用info.value初始化，对于ConstDeclaration通常不为null
-      }
-      // 如果需要处理过程中的变量，可以在这里增加逻辑
-    }
-  }
-
-  // 显示变量和常量的初始状态
-  showInitialVariableStates() {
-    console.log("Initial variable and constant states:");
-    for (let [name, info] of Object.entries(this.symbolTable)) {
-      console.log(`${name}: ${info.value}`);
-    }
-  }
   loadSymbolTable(symbolTable) {
     this.symbolTable = symbolTable;
   }
@@ -105,6 +36,111 @@ class Debugger {
       // 可以根据需要处理其他类型
     });
     return variablesInitValues;
+  }
+  loadDebugInfo(breakPoints, intermediateCode) {
+    this.breakpoints.add(breakPoints);
+    this.intermediateCode = intermediateCode;
+  }
+  executeCodeItem(item) {
+    const { code, line } = item;
+    const parts = code.split(" ");
+    const instruction = parts[0];
+    const operands = parts.slice(1);
+
+    switch (instruction) {
+      case "DECLARE":
+        // 初始化变量
+        this.symbolTable[operands[0]] = { type: "VarDeclaration", value: null };
+        break;
+      case "PUSH":
+        // 压栈
+        this.stack.push(parseInt(operands[0], 10));
+        break;
+      case "STORE":
+        // 存储变量值
+        this.symbolTable[operands[0]].value = this.stack.pop();
+        break;
+      case "LOAD":
+        // 加载变量值到栈
+        this.stack.push(this.symbolTable[operands[0]].value);
+        break;
+      case "OPER":
+        // 执行运算
+        this.executeOperation(operands[0]);
+        break;
+      case "IF":
+      case "ELSEIF":
+      case "ELSE":
+      case "ENDIF":
+      case "WHILE":
+      case "DO":
+      case "ENDWHILE":
+      case "FOR":
+      case "ENDFOR":
+      case "PROCEDURE":
+      case "CALL":
+        // 特殊控制流处理
+        // 注意：这里需要根据实际的控制流逻辑来实现相应的处理
+        break;
+      case "WRITE":
+        // 模拟输出操作，这里可以打印变量值或做其他处理
+        console.log("WRITE operation:", this.stack.pop());
+        break;
+      case "READ":
+        // 模拟读入操作，这里简化处理
+        console.log("READ operation: Simulating input of 1");
+        this.stack.push(1);
+        break;
+      default:
+        console.warn("Unknown instruction:", instruction);
+    }
+  }
+  executeOperation(operator) {
+    const right = this.stack.pop();
+    const left = this.stack.pop();
+    switch (operator) {
+      case "+":
+        this.stack.push(left + right);
+        break;
+      case "-":
+        this.stack.push(left - right);
+        break;
+      case "*":
+        this.stack.push(left * right);
+        break;
+      case "/":
+        this.stack.push(left / right);
+        break;
+      case ">":
+      case "<":
+      case "=":
+      case "<=":
+      case ">=":
+      case "<>":
+        // 根据实际需要处理比较运算
+        break;
+      default:
+        console.warn("Unknown operator:", operator);
+    }
+  }
+  executeToLine(debugLine) {
+    // 重置状态
+    this.stack = [];
+    for (const varName in this.symbolTable) {
+      this.symbolTable[varName].value = null;
+    }
+
+    // 模拟执行
+    for (const item of this.intermediateCode) {
+      if (item.line > debugLine) break;
+      this.executeCodeItem(item);
+    }
+  }
+
+  // 获取特定行的变量状态
+  getVariableStatesAtLine(debugLine) {
+    this.executeToLine(debugLine);
+    return this.symbolTable;
   }
 }
 module.exports = Debugger;

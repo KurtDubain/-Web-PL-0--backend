@@ -79,7 +79,11 @@ const intermediateCodeGenerator = {
         if (node.elseIfStatement) {
           node.elseIfStatement.forEach((elseif) => {
             this.generateCodeFromNode(elseif.condition, intermediateCode);
-            intermediateCode.push({ code: "ELSEIF", line: elseif.line });
+            // console.log(elseif);
+            intermediateCode.push({
+              code: "ELSEIF",
+              line: elseif.condition.line,
+            });
             this.generateCodeFromNode(elseif.thenStatement, intermediateCode);
           });
         }

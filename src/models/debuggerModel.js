@@ -11,8 +11,12 @@ const debuggerModel = {
       const ast = syntaxAnalyzer.analyze(token);
       const interCodeWithLine =
         intermediateCodeGenerator.generateIntermediateCodeWithLine(ast);
-      return interCodeWithLine;
-    } catch (error) {}
+      myDebugger.loadDebugInfo(line, interCodeWithLine);
+      myDebugger.getVariableStatesAtLine(line);
+      return myDebugger.getVariablesInitValues();
+    } catch (error) {
+      console.error("get symbolTable false", error);
+    }
   },
   async init(code, line) {
     try {
