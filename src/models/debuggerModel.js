@@ -7,6 +7,11 @@ const myDebugger = new Debugger();
 const debuggerModel = {
   async debug2point(code, line) {
     try {
+      const token = lexicalAnalyzer.analyze(code);
+      const ast = syntaxAnalyzer.analyze(token);
+      const interCodeWithLine =
+        intermediateCodeGenerator.generateIntermediateCodeWithLine(ast);
+      return interCodeWithLine;
     } catch (error) {}
   },
   async init(code, line) {
@@ -14,7 +19,6 @@ const debuggerModel = {
       const token = lexicalAnalyzer.analyze(code);
       const ast = syntaxAnalyzer.analyze(token);
       const symbolTable = semanticAnalyzer.analyze(ast);
-      console.log(symbolTable);
       myDebugger.loadSymbolTable(symbolTable);
       const initResult = myDebugger.getVariablesInitValues();
       return initResult;

@@ -15,7 +15,7 @@ const semanticAnalyzer = {
 
   // 根据节点类型分发到具体的处理方法
   processNode(node) {
-    console.log(node);
+    // console.log(node);
     switch (node.type) {
       case "Program":
       case "Block":

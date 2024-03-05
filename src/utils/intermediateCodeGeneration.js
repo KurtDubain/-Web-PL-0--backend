@@ -2,6 +2,7 @@ const intermediateCodeGenerator = {
   generateIntermediateCode(ast) {
     const intermediateCode = [];
     this.generateCodeFromNode(ast, intermediateCode);
+    console.log(intermediateCode);
     return intermediateCode.map((item) => item.code); // 只返回代码部分
   },
   generateIntermediateCodeWithLine(ast) {
@@ -36,11 +37,32 @@ const intermediateCodeGenerator = {
           intermediateCode.push({ code, line: decl.line });
         });
         break;
+      case "ProcedureDeclaration":
+        intermediateCode.push({
+          code: `PROCEDURE ${node.name} START`,
+          line: node.line,
+        });
+        this.generateCodeFromNode(node.body, intermediateCode);
+        intermediateCode.push({
+          code: `PROCEDURE ${node.name} END`,
+          line: node.line,
+        });
+        break;
 
       case "AssignmentStatement":
         this.generateCodeFromNode(node.expression, intermediateCode); // 先处理表达式
         intermediateCode.push({
           code: `STORE ${node.identifier}`,
+          line: node.line,
+        });
+        break;
+      case "ProcedureCall":
+        intermediateCode.push({ code: `CALL ${node.name}`, line: node.line });
+        break;
+
+      case "ReadStatement":
+        intermediateCode.push({
+          code: `READ ${node.variableName}`,
           line: node.line,
         });
         break;
@@ -54,6 +76,13 @@ const intermediateCodeGenerator = {
         this.generateCodeFromNode(node.condition, intermediateCode);
         intermediateCode.push({ code: "IF", line: node.line });
         this.generateCodeFromNode(node.thenStatement, intermediateCode);
+        if (node.elseIfStatement) {
+          node.elseIfStatement.forEach((elseif) => {
+            this.generateCodeFromNode(elseif.condition, intermediateCode);
+            intermediateCode.push({ code: "ELSEIF", line: elseif.line });
+            this.generateCodeFromNode(elseif.thenStatement, intermediateCode);
+          });
+        }
         if (node.elseStatement) {
           intermediateCode.push({
             code: "ELSE",
