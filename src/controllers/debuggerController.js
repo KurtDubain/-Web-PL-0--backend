@@ -1,5 +1,7 @@
+// 调试器控制器
 const debuggerModel = require("../models/debuggerModel");
 const debuggerController = {
+  // 调试到指定断点
   async debug2point(ctx) {
     try {
       const { data } = ctx.request.body;
@@ -20,6 +22,7 @@ const debuggerController = {
       };
     }
   },
+  // 单步执行
   async debugNextPoint(ctx) {
     try {
       const { data } = ctx.request.body;
@@ -40,6 +43,7 @@ const debuggerController = {
       };
     }
   },
+  // 变量初始化
   async init(ctx) {
     try {
       const { data } = ctx.request.body;

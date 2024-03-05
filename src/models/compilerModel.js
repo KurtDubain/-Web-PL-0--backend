@@ -1,4 +1,3 @@
-// src/models/complierModel.js
 const intermediateCodeGenerator = require("../utils/intermediateCodeGeneration");
 const lexicalAnalyzer = require("../utils/lexicalAnalysis");
 const semanticAnalyzer = require("../utils/semanticAnalysis");
@@ -96,6 +95,7 @@ const compilerModel = {
       return `目标代码生成错误: ${error.message}`;
     }
   },
+  // WAT转换成WASM处理，用于执行
   async runCode(wat) {
     try {
       const wabtModule = await wabt();
@@ -103,7 +103,7 @@ const compilerModel = {
       const { buffer } = wasmModule.toBinary({});
       return buffer;
     } catch (error) {
-      console.error(error);
+      console.error("wat change wasm fail", error);
       return null;
     }
   },

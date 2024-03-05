@@ -1,11 +1,11 @@
-// src/controllers/complierController.js
+// 编译控制器
 const compilerModel = require("../models/compilerModel");
 
 const compilerController = {
+  // 编译
   async compileCode(ctx) {
     try {
       const { data } = ctx.request.body;
-      // console.log(data)
       // 调用编译器的功能
       const compiledResult = await compilerModel.compileCode(
         data.code,
@@ -27,10 +27,10 @@ const compilerController = {
       };
     }
   },
+  // 执行功能
   async runCode(ctx) {
     try {
       const { data } = ctx.request.body;
-      // console.log(data)
       // 调用编译器的功能
       const compiledResult = await compilerModel.compileCode(
         data.code,
