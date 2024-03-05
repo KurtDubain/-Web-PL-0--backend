@@ -1,3 +1,4 @@
+// 语义分析器
 const semanticAnalyzer = {
   symbolTable: {}, // 使用对象作为简化的符号表
 
@@ -67,7 +68,7 @@ const semanticAnalyzer = {
   processStatements(statements) {
     statements.forEach((statement) => this.processNode(statement));
   },
-
+  // 变量声明
   processDeclaration(node) {
     node.children.forEach((decl) => {
       const name = decl.name;
@@ -77,7 +78,7 @@ const semanticAnalyzer = {
       this.symbolTable[name] = { type: decl.type, value: null }; // 声明变量，默认值为null
     });
   },
-
+  // 过程声明
   processProcedureDeclaration(node) {
     const name = node.name;
     if (this.symbolTable[name]) {
@@ -98,7 +99,7 @@ const semanticAnalyzer = {
     }
     // 这里可以对赋值表达式进行分析，暂略
   },
-
+  // 过程调用
   processProcedureCall(node) {
     const name = node.name;
     if (
@@ -149,6 +150,7 @@ const semanticAnalyzer = {
     // 处理右子节点
     this.processExpression(node.right);
   },
+  // 算术表达式处理
   processExpression(expression) {
     switch (expression.type) {
       case "Identifier":

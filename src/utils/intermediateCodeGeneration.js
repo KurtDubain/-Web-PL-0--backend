@@ -1,19 +1,22 @@
+// 中间代码生成器
 const intermediateCodeGenerator = {
+  // 纯净中间代码生成
   generateIntermediateCode(ast) {
     const intermediateCode = [];
     this.generateCodeFromNode(ast, intermediateCode);
-    console.log(intermediateCode);
+    // console.log(intermediateCode);
     return intermediateCode.map((item) => item.code); // 只返回代码部分
   },
+  // 中间代码+对应行号生成
   generateIntermediateCodeWithLine(ast) {
     const intermediateCodeWithLine = [];
     this.generateCodeFromNode(ast, intermediateCodeWithLine);
     return intermediateCodeWithLine; // 返回包含代码和行号的对象数组
   },
-
+  // 中间代码生成核心
   generateCodeFromNode(node, intermediateCode) {
     if (!node) return;
-
+    // 递归处理ast节点
     switch (node.type) {
       case "Program":
       case "Block":
@@ -139,8 +142,6 @@ const intermediateCodeGenerator = {
       case "Identifier":
         intermediateCode.push({ code: `LOAD ${node.name}`, line: node.line });
         break;
-
-      // 注意：实际中需要添加更多AST节点类型的处理逻辑
 
       default:
         console.warn(`Unhandled node type: ${node.type}`);

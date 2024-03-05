@@ -1,3 +1,4 @@
+// 目标代码生成器
 const targetCodeGenerator = {
   labelCounter: 0,
   loopLabelsStack: [],
