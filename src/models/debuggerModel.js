@@ -14,8 +14,9 @@ const debuggerModel = {
       const token = lexicalAnalyzer.analyze(code);
       const ast = syntaxAnalyzer.analyze(token);
       const symbolTable = semanticAnalyzer.analyze(ast);
+      console.log(symbolTable);
       myDebugger.loadSymbolTable(symbolTable);
-      const initResult = myDebugger.loadSemanticAnalysisResult();
+      const initResult = myDebugger.getVariablesInitValues();
       return initResult;
     } catch (error) {
       console.error("init symbolTable fail", error);

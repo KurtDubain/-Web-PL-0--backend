@@ -83,6 +83,7 @@ class Debugger {
   }
   getVariablesInitValues(symbolTable = this.symbolTable, scope = "global") {
     let variablesInitValues = [];
+    // console.log(symbolTable);
     Object.entries(symbolTable).forEach(([name, info]) => {
       if (info.type === "VarDeclaration" || info.type === "ConstDeclaration") {
         // 直接处理变量和常量声明

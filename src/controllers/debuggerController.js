@@ -43,7 +43,7 @@ const debuggerController = {
   async init(ctx) {
     try {
       const { data } = ctx.request.body;
-      const initResult = await debuggerModel.init(data.code, data.line);
+      const initResult = await debuggerModel.init(data.code.content, data.line);
       ctx.status = 200;
       ctx.body = {
         success: true,
