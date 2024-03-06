@@ -9,7 +9,8 @@ const compilerController = {
       // 调用编译器的功能
       const compiledResult = await compilerModel.compileCode(
         data.code,
-        data.options
+        data.options,
+        data.language
       );
       ctx.status = 200;
       ctx.body = {

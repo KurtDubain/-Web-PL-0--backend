@@ -8,7 +8,7 @@ const wabt = require("wabt");
 // 编译操作数据模型
 const compilerModel = {
   // 编译功能
-  async compileCode(code, options) {
+  async compileCode(code, options, language) {
     const result = {};
     // 根据options确定返回的result内容
     // Lexical analysis词法分析
@@ -30,16 +30,22 @@ const compilerModel = {
     if (options["IntermediateCodeGeneration"]) {
       result["IntermediateCodeGeneration"] =
         await this.performIntermediateCodeGeneration(code);
-      console.log(
-        jsGenterator.generateJS(result["IntermediateCodeGeneration"])
-      );
+      // console.log(
+      //   jsGenterator.generateJS(result["IntermediateCodeGeneration"])
+      // );
     }
 
     // Target code generation目标代码生成
     if (options["TargetCodeGeneration"]) {
-      result["TargetCodeGeneration"] = await this.performTargetCodeGeneration(
-        code
-      );
+      if (language == "js") {
+        result["TargetCodeGeneration"] = await this.performTargetCodeGeneration(
+          code
+        );
+      } else if (language == "wasm") {
+        result["TargetCodeGeneration"] = await this.performTargetCodeGeneration(
+          code
+        );
+      }
     }
     return result;
   },
@@ -93,6 +99,18 @@ const compilerModel = {
         code
       );
       const targetCode = generateTargetCode.generateWAT(intermediateCode);
+      return targetCode;
+    } catch (error) {
+      console.error(`目标代码生成出错了: ${error.message}`);
+      return `目标代码生成错误: ${error.message}`;
+    }
+  },
+  async performTargetJSCodeGeneration(code) {
+    try {
+      const intermediateCode = await this.performIntermediateCodeGeneration(
+        code
+      );
+      const targetCode = jsGenterator.generateJS(intermediateCode);
       return targetCode;
     } catch (error) {
       console.error(`目标代码生成出错了: ${error.message}`);
