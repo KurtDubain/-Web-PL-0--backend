@@ -35,17 +35,27 @@ const compilerController = {
       // 调用编译器的功能
       const compiledResult = await compilerModel.compileCode(
         data.code,
-        data.options
+        data.options,
+        data.language
       );
-      const runResult = await compilerModel.runCode(
-        compiledResult.TargetCodeGeneration
-      );
-      ctx.status = 200;
-      ctx.body = {
-        success: true,
-        message: "执行成功",
-        result: runResult,
-      };
+      if (data.language == "wasm") {
+        const runResult = await compilerModel.runCode(
+          compiledResult.TargetCodeGeneration
+        );
+        ctx.status = 200;
+        ctx.body = {
+          success: true,
+          message: "执行成功",
+          result: { runResult, language: "wasm" },
+        };
+      } else {
+        ctx.status = 200;
+        ctx.body = {
+          success: true,
+          message: "执行成功",
+          result: { compiledResult, language: "js" },
+        };
+      }
     } catch (error) {
       console.error("执行异常", error);
       ctx.status = 500;

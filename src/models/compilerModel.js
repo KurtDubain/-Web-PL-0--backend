@@ -34,13 +34,11 @@ const compilerModel = {
       //   jsGenterator.generateJS(result["IntermediateCodeGeneration"])
       // );
     }
-
     // Target code generation目标代码生成
     if (options["TargetCodeGeneration"]) {
       if (language == "js") {
-        result["TargetCodeGeneration"] = await this.performTargetCodeGeneration(
-          code
-        );
+        result["TargetCodeGeneration"] =
+          await this.performTargetJSCodeGeneration(code);
       } else if (language == "wasm") {
         result["TargetCodeGeneration"] = await this.performTargetCodeGeneration(
           code

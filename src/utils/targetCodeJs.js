@@ -17,10 +17,10 @@ const jsTargetCodeGenerator = {
       const [operation, operand1, operand2] = instruction.split(" ");
       switch (operation) {
         case "DECLARE":
-          if (!this.variableDeclarations.has(operand1)) {
-            jsCode += `let ${operand1};\n`;
-            this.variableDeclarations.add(operand1);
-          }
+          //   if (!this.variableDeclarations.has(operand1)) {
+          jsCode += `  let ${operand1};\n`;
+          this.variableDeclarations.add(operand1);
+          //   }
           break;
         case "CONST":
           jsCode += `const ${operand1} = ${operand2};\n`;
@@ -40,7 +40,7 @@ const jsTargetCodeGenerator = {
           break;
         case "READ":
           // Assuming `read` is a function you've defined to handle input
-          this.functionsCode += `let ${this.varStack.pop()} = read();\n`;
+          this.functionsCode += `  ${operand1} = await read();\n`;
           //   this.varStack.push("readValue");
           break;
         case "WRITE":
