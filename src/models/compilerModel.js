@@ -3,6 +3,7 @@ const lexicalAnalyzer = require("../utils/lexicalAnalysis");
 const semanticAnalyzer = require("../utils/semanticAnalysis");
 const syntaxAnalyzer = require("../utils/syntaxAnalysis");
 const generateTargetCode = require("../utils/targetCodeGeneration");
+const jsGenterator = require("../utils/targetCodeJs");
 const wabt = require("wabt");
 // 编译操作数据模型
 const compilerModel = {
@@ -29,6 +30,9 @@ const compilerModel = {
     if (options["IntermediateCodeGeneration"]) {
       result["IntermediateCodeGeneration"] =
         await this.performIntermediateCodeGeneration(code);
+      console.log(
+        jsGenterator.generateJS(result["IntermediateCodeGeneration"])
+      );
     }
 
     // Target code generation目标代码生成
