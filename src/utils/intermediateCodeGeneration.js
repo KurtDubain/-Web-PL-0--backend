@@ -4,7 +4,7 @@ const intermediateCodeGenerator = {
   generateIntermediateCode(ast) {
     const intermediateCode = [];
     this.generateCodeFromNode(ast, intermediateCode);
-    // console.log(intermediateCode);
+    console.log(intermediateCode);
     return intermediateCode.map((item) => item.code); // 只返回代码部分
   },
   // 中间代码+对应行号生成

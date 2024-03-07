@@ -2,6 +2,7 @@ const intermediateCodeGenerator = require("../utils/intermediateCodeGeneration")
 const lexicalAnalyzer = require("../utils/lexicalAnalysis");
 const semanticAnalyzer = require("../utils/semanticAnalysis");
 const syntaxAnalyzer = require("../utils/syntaxAnalysis");
+const targetCodeGenerator = require("../utils/targetCodeGeneration");
 const generateTargetCode = require("../utils/targetCodeGeneration");
 const jsGenterator = require("../utils/targetCodeJs");
 const wabt = require("wabt");
@@ -105,9 +106,9 @@ const compilerModel = {
   },
   async performTargetJSCodeGeneration(code) {
     try {
-      const intermediateCode = await this.performIntermediateCodeGeneration(
-        code
-      );
+      const ast = await this.performSyntaxAnalysis(code);
+      const intermediateCode =
+        intermediateCodeGenerator.generateIntermediateCodeWithLine(ast);
       const targetCode = jsGenterator.generateJS(intermediateCode);
       return targetCode;
     } catch (error) {

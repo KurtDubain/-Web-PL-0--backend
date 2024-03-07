@@ -14,38 +14,39 @@ const jsTargetCodeGenerator = {
     this.functionsCode = "";
 
     intermediateCode.forEach((instruction) => {
-      const [operation, operand1, operand2] = instruction.split(" ");
+      const { code, line } = instruction;
+      const [operation, operand1, operand2] = code.split(" ");
       switch (operation) {
         case "DECLARE":
           //   if (!this.variableDeclarations.has(operand1)) {
-          jsCode += `  let ${operand1};\n`;
+          jsCode += `  let ${operand1};//${line}\n`;
           this.variableDeclarations.add(operand1);
           //   }
           break;
         case "CONST":
-          jsCode += `const ${operand1} = ${operand2};\n`;
+          jsCode += `const ${operand1} = ${operand2};//${line}\n`;
           break;
         case "LOAD":
           this.varStack.push(operand1);
           break;
         case "STORE":
           const valueToStore = this.varStack.pop();
-          this.functionsCode += `  ${operand1} = ${valueToStore};\n`;
+          this.functionsCode += `  ${operand1} = ${valueToStore};//${line}\n`;
           break;
         case "PUSH":
           this.varStack.push(operand1);
           break;
         case "CALL":
-          this.functionsCode += `  ${operand1}();\n`;
+          this.functionsCode += `  ${operand1}();//${line}\n`;
           break;
         case "READ":
           // Assuming `read` is a function you've defined to handle input
-          this.functionsCode += `  ${operand1} = await read();\n`;
+          this.functionsCode += `  ${operand1} = await read();//${line}\n`;
           //   this.varStack.push("readValue");
           break;
         case "WRITE":
           const valueToWrite = this.varStack.pop();
-          this.functionsCode += `  write(${valueToWrite});\n`;
+          this.functionsCode += `  write(${valueToWrite});//${line}\n`;
           break;
         case "OPER":
           const right = this.varStack.pop();
@@ -56,9 +57,9 @@ const jsTargetCodeGenerator = {
           break;
         case "PROCEDURE":
           if (operand2 === "START") {
-            this.functionsCode += `function ${operand1}() {\n`;
+            this.functionsCode += `function ${operand1}() {//${line}\n`;
           } else {
-            this.functionsCode += `}\n`;
+            this.functionsCode += `}//${line}\n`;
           }
           break;
         case "IF":
@@ -68,7 +69,8 @@ const jsTargetCodeGenerator = {
           this.functionsCode += this.handleCondition(
             operation,
             operand1,
-            operand2
+            operand2,
+            line
           );
           break;
         case "WHILE":
@@ -76,7 +78,12 @@ const jsTargetCodeGenerator = {
         case "ENDWHILE":
         case "FOR":
         case "ENDFOR":
-          this.functionsCode += this.handleLoop(operation, operand1, operand2);
+          this.functionsCode += this.handleLoop(
+            operation,
+            operand1,
+            operand2,
+            line
+          );
           break;
         default:
           this.functionsCode += "// Unhandled operation\n";
@@ -103,43 +110,43 @@ const jsTargetCodeGenerator = {
     return operatorMappings[operation];
   },
 
-  handleCondition(operation, operand1, operand2) {
+  handleCondition(operation, operand1, operand2, line) {
     switch (operation) {
       case "IF":
         const conditionIf = this.varStack.pop();
-        return `if (${conditionIf}) {\n`;
+        return `if (${conditionIf}) {//${line}\n`;
       case "ELSEIF":
         const conditionElseIf = this.varStack.pop();
-        return `} else if (${conditionElseIf}) {\n`;
+        return `} else if (${conditionElseIf}) {//${line}\n`;
       case "ELSE":
-        return `} else {\n`;
+        return `} else {//${line}\n`;
       case "ENDIF":
-        return `}\n`;
+        return `}//${line}\n`;
       default:
         return "// Unhandled condition\n";
     }
   },
 
-  handleLoop(operation, operand1, operand2) {
+  handleLoop(operation, operand1, operand2, line) {
     switch (operation) {
       case "WHILE":
         return `while (`;
       case "DO":
         const result = this.varStack.pop();
         // DO logic here if your intermediate code requires it
-        return `${result}){\n`;
+        return `${result}){//${line}\n`;
       case "ENDWHILE":
-        return `}\n`;
+        return `}//${line}\n`;
       case "FOR":
         if (operand2 === "INIT") {
           return `for (${operand1} = 0;${operand1} < `;
         } else if (operand2 === "TO") {
-          return `${this.varStack.pop()};${operand1}++){\n`;
+          return `${this.varStack.pop()};${operand1}++){//${line}\n`;
         }
       // Assuming FOR loop structure is defined in your intermediate code
       // return `for (let ${operand1} = 0; ${operand1} < ${operand2}; ${operand1}++) {\n`;
       case "ENDFOR":
-        return `}\n`;
+        return `}//${line}\n`;
       default:
         return "// Unhandled loop\n";
     }
