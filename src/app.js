@@ -3,7 +3,7 @@ const Koa = require("koa");
 const http = require("http");
 const Router = require("koa-router");
 const bodyParser = require("koa-bodyparser");
-const cors = require("koa-cors");
+const cors = require("@koa-cors");
 const startWebSocketServer = require("./services/webSocketServer");
 // 路由文件引入
 const compilerRoutes = require("./routes/compiler");
@@ -27,6 +27,9 @@ const server = http.createServer(app.callback());
 startWebSocketServer(server);
 // 服务启动
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+server.listen(PORT, () => {
+  console.log("成功执行webSocket");
 });
+// app.listen(PORT, () => {
+//   console.log(`Server is running on port ${PORT}`);
+// });

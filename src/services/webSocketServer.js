@@ -75,7 +75,7 @@ const startWebSocketServer = (server) => {
     const debugSession = new DebugSession(socket);
     debugSessions.set(socket.id, debugSession);
 
-    socket.on("initialize", async (data) => {
+    socket.on("init", async (data) => {
       const { code, breakpoints } = data;
       await debugSession.initializeDebugSession(code, breakpoints);
     });
