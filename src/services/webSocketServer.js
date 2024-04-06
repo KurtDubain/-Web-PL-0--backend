@@ -1,6 +1,8 @@
 // src/websocketService.js
 const socketIo = require("socket.io");
+const compilerModel = require("../models/compilerModel");
 const inspector = require("inspector");
+const cors = require("@koa/cors");
 const session = new inspector.Session();
 session.connect();
 
@@ -9,6 +11,8 @@ class DebugSession {
     this.socket = socket;
     this.session = session;
     this.scriptId = null;
+    this.compiledJSCode = null;
+    this.lineMapping = {};
 
     this.socket.on("disconnect", () => {
       console.log("Client disconnected");
@@ -28,6 +32,10 @@ class DebugSession {
   }
 
   async initializeDebugSession(code, breakpoints) {
+    this.compiledJSCode = await compilerModel.performTargetJSCodeGeneration(
+      code
+    );
+    this.lineMapping = generateLineMapping(code, this.compiledJSCode);
     this.session.post("Debugger.enable");
     this.session.post("Runtime.enable");
 
@@ -35,7 +43,7 @@ class DebugSession {
     this.session.post(
       "Runtime.compileScript",
       {
-        expression: code,
+        expression: this.compiledJSCode,
         sourceURL: "input.js", // 给代码一个虚拟的URL
         persistScript: true,
       },
@@ -49,10 +57,17 @@ class DebugSession {
     );
 
     // 设置断点
-    breakpoints.forEach((line) => {
-      this.session.post("Debugger.setBreakpoint", {
-        location: { scriptId: this.scriptId, lineNumber: line - 1 }, // inspector API中行号是从0开始的
-      });
+    breakpoints.forEach((pl0Line) => {
+      // 使用行号映射将PL/0的行号转换为JS的行号
+      const jsLine = this.lineMapping[pl0Line];
+      if (jsLine !== undefined) {
+        this.session.post("Debugger.setBreakpoint", {
+          location: {
+            scriptId: this.scriptId,
+            lineNumber: jsLine - 1, // inspector API中行号是从0开始的
+          },
+        });
+      }
     });
   }
 
@@ -66,7 +81,16 @@ class DebugSession {
 }
 
 const startWebSocketServer = (server) => {
-  const io = socketIo(server);
+  const io = socketIo(server, {
+    cors: {
+      origin: "http://localhost:8080",
+      methods: ["GET", "POST"],
+      allowedHeaders: ["my-custom-header"],
+      credentials: true,
+    },
+    pingInterval: 1000, // 每10秒发送一次心跳包
+    pingTimeout: 500,
+  });
   const debugSessions = new Map();
 
   io.on("connection", (socket) => {
@@ -77,7 +101,8 @@ const startWebSocketServer = (server) => {
 
     socket.on("init", async (data) => {
       const { code, breakpoints } = data;
-      await debugSession.initializeDebugSession(code, breakpoints);
+      console.log(code, breakpoints);
+      await debugSession.initializeDebugSession(code.content, breakpoints);
     });
 
     socket.on("debugCommand", (data) => {
@@ -104,4 +129,36 @@ const startWebSocketServer = (server) => {
   console.log("WebSocket server started.");
 };
 
+function generateLineMapping(pl0Code, jsCode) {
+  const jsLines = jsCode.split("\n");
+  const mapping = {};
+
+  jsLines.forEach((line, index) => {
+    if (line.includes("//")) {
+      const commentPart = line.split("//")[1].trim();
+      const pl0LineNumber = parseInt(commentPart, 10);
+      if (!isNaN(pl0LineNumber)) {
+        mapping[pl0LineNumber] = index + 1;
+      }
+    }
+  });
+
+  return mapping;
+}
+function findClosestJsLine(pl0Line, lineMapping) {
+  if (lineMapping[pl0Line]) {
+    return lineMapping[pl0Line];
+  } else {
+    // 如果直接找不到，寻找最近的前一个有效行
+    let closestLine = null;
+    Object.keys(lineMapping).forEach((mappedLine) => {
+      const mappedLineInt = parseInt(mappedLine, 10);
+      if (mappedLineInt < pl0Line) {
+        closestLine = mappedLineInt;
+      }
+    });
+
+    return closestLine ? lineMapping[closestLine] : null;
+  }
+}
 module.exports = startWebSocketServer;
