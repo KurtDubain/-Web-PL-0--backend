@@ -32,38 +32,63 @@ class DebugSession {
     this.session.on("Debugger.paused", async (message) => {
       const { params } = message;
       const currentCallFrame = params.callFrames[0];
-      const jsLine = currentCallFrame.location.lineNumber + 1; // Inspector协议中的行号是从0开始的，因此需要+1
-      const CallFrameId = params.callFrames[0].callFrameId;
-      const scopes = params.callFrames[0].scopeChain;
-
-      for (const scope of scopes) {
-        if (scope.object) {
-          this.session.post(
-            "Runtime.getProperties",
-            { objectId: scope.object.objectId },
-            (err, result) => {
-              if (err) {
-                console.error("Failed to get properties:", err);
-              } else {
-                console.log("Scope variables:");
-                // 处理作用域变量...
-              }
-            }
-          );
-        }
-      }
-      // 使用逆向映射找到对应的PL/0行号
+      const jsLine = currentCallFrame.location.lineNumber + 1; // 从0开始计数，所以+1得到实际的行号
+      // 找到PL/0对应的行号
       const pl0Line = Object.keys(this.lineMapping).find(
         (key) => this.lineMapping[key] === jsLine
       );
 
+      // 收集作用域内的所有变量
+      let variables = [];
+      for (const scope of currentCallFrame.scopeChain) {
+        if (scope.object) {
+          try {
+            const { result: properties } = await new Promise(
+              (resolve, reject) => {
+                this.session.post(
+                  "Runtime.getProperties",
+                  { objectId: scope.object.objectId },
+                  (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
+                  }
+                );
+              }
+            );
+
+            for (const property of properties) {
+              // 这里只收集了简单的变量，复杂类型可以进一步处理
+              if (property.value && property.name) {
+                variables.push({
+                  name: property.name,
+                  value: property.value.value || property.value.description,
+                });
+              }
+            }
+          } catch (err) {
+            console.error("Failed to get properties:", err);
+          }
+        }
+      }
+      // 使用逆向映射找到对应的PL/0行号
+      // const pl0Line = Object.keys(this.lineMapping).find(
+      //   (key) => this.lineMapping[key] === jsLine
+      // );
+
       // 现在你有了PL/0行号，可以将其发送给前端
       socket.emit("paused", {
-        ...params,
+        variables,
         pl0Line: pl0Line, // 发送PL/0行号
         // variables: result.variables,
         // 你可以在这里添加其他需要的调试信息
       });
+      // this.session.post("Debugger.pause", (err, res) => {
+      //   if (err) {
+      //     console.error("Failed to pause:", err);
+      //   } else {
+      //     console.log("Paused successfully", res);
+      //   }
+      // });
     });
 
     this.session.on("Debugger.scriptParsed", (message) => {

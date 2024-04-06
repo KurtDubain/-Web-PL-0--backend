@@ -19,12 +19,12 @@ const jsTargetCodeGenerator = {
       switch (operation) {
         case "DECLARE":
           //   if (!this.variableDeclarations.has(operand1)) {
-          jsCode += `  let ${operand1};//${line}\n`;
+          jsCode += `  var ${operand1};//${line}\n`;
           this.variableDeclarations.add(operand1);
           //   }
           break;
         case "CONST":
-          jsCode += `const ${operand1} = ${operand2};//${line}\n`;
+          jsCode += `var ${operand1} = ${operand2};//${line}\n`;
           break;
         case "LOAD":
           this.varStack.push(operand1);
