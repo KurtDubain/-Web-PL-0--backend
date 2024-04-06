@@ -2,14 +2,24 @@
 const socketIo = require("socket.io");
 const compilerModel = require("../models/compilerModel");
 const inspector = require("inspector");
-const cors = require("@koa/cors");
-const session = new inspector.Session();
-session.connect();
+// const cors = require("@koa/cors");
+// const session = new inspector.Session();
+// session.connect();
+const readWriteMethods = `
+function read(varName) {
+  // 假定为每个读取操作返回2
+  global[varName] = 2;
+}
 
+function write(value) {
+  console.log(value);
+}
+`;
 class DebugSession {
   constructor(socket) {
     this.socket = socket;
-    this.session = session;
+    this.session = new inspector.Session(); // 将session实例化移到构造函数内部
+    this.session.connect();
     this.scriptId = null;
     this.compiledJSCode = null;
     this.lineMapping = {};
@@ -19,10 +29,41 @@ class DebugSession {
       this.session.disconnect();
     });
 
-    this.session.on("Debugger.paused", (message) => {
+    this.session.on("Debugger.paused", async (message) => {
       const { params } = message;
-      // 向客户端发送暂停事件和当前调试信息
-      socket.emit("paused", params);
+      const currentCallFrame = params.callFrames[0];
+      const jsLine = currentCallFrame.location.lineNumber + 1; // Inspector协议中的行号是从0开始的，因此需要+1
+      const CallFrameId = params.callFrames[0].callFrameId;
+      const scopes = params.callFrames[0].scopeChain;
+
+      for (const scope of scopes) {
+        if (scope.object) {
+          this.session.post(
+            "Runtime.getProperties",
+            { objectId: scope.object.objectId },
+            (err, result) => {
+              if (err) {
+                console.error("Failed to get properties:", err);
+              } else {
+                console.log("Scope variables:");
+                // 处理作用域变量...
+              }
+            }
+          );
+        }
+      }
+      // 使用逆向映射找到对应的PL/0行号
+      const pl0Line = Object.keys(this.lineMapping).find(
+        (key) => this.lineMapping[key] === jsLine
+      );
+
+      // 现在你有了PL/0行号，可以将其发送给前端
+      socket.emit("paused", {
+        ...params,
+        pl0Line: pl0Line, // 发送PL/0行号
+        // variables: result.variables,
+        // 你可以在这里添加其他需要的调试信息
+      });
     });
 
     this.session.on("Debugger.scriptParsed", (message) => {
@@ -35,44 +76,97 @@ class DebugSession {
     this.compiledJSCode = await compilerModel.performTargetJSCodeGeneration(
       code
     );
+    this.compiledJSCode = this.compiledJSCode + readWriteMethods;
     this.lineMapping = generateLineMapping(code, this.compiledJSCode);
+
     this.session.post("Debugger.enable");
     this.session.post("Runtime.enable");
 
-    // 编译并运行代码
+    // 先编译脚本
+    this.compileScript(() => {
+      // 设置好所有断点后再执行脚本
+      this.setBreakpoints(breakpoints, () => {
+        this.runScript();
+      });
+    });
+  }
+
+  compileScript(callback) {
     this.session.post(
       "Runtime.compileScript",
       {
         expression: this.compiledJSCode,
-        sourceURL: "input.js", // 给代码一个虚拟的URL
+        sourceURL: "input.js",
         persistScript: true,
       },
-      (err, { scriptId }) => {
+      (err, res) => {
         if (err) {
           console.error("Compile script failed:", err);
           return;
         }
-        this.session.post("Runtime.runScript", { scriptId });
+        this.scriptId = res.scriptId;
+        if (callback) callback();
       }
     );
+  }
 
-    // 设置断点
+  setBreakpoints(breakpoints, callback) {
+    let breakpointsSet = 0;
     breakpoints.forEach((pl0Line) => {
-      // 使用行号映射将PL/0的行号转换为JS的行号
-      const jsLine = this.lineMapping[pl0Line];
-      if (jsLine !== undefined) {
-        this.session.post("Debugger.setBreakpoint", {
-          location: {
-            scriptId: this.scriptId,
-            lineNumber: jsLine - 1, // inspector API中行号是从0开始的
+      const jsLine =
+        this.lineMapping[pl0Line] ||
+        findClosestJsLine(pl0Line, this.lineMapping);
+      if (jsLine) {
+        this.session.post(
+          "Debugger.setBreakpoint",
+          {
+            location: {
+              scriptId: this.scriptId,
+              lineNumber: jsLine - 1,
+            },
           },
-        });
+          (err, response) => {
+            if (err) {
+              console.error("Failed to set breakpoint:", err);
+            } else {
+              console.log("Breakpoint set successfully, response:", response);
+            }
+            breakpointsSet++;
+            // 确保所有断点都设置完成后再回调
+            if (breakpointsSet === breakpoints.length && callback) {
+              callback();
+            }
+          }
+        );
       }
     });
   }
 
+  runScript() {
+    // 这里只有在设置完断点后才执行脚本
+    this.session.post(
+      "Runtime.runScript",
+      { scriptId: this.scriptId },
+      (err, res) => {
+        if (err) {
+          console.error("Run script failed:", err);
+        } else {
+          console.log("Script executed successfully, response:", res);
+        }
+      }
+    );
+  }
+
   continue() {
-    this.session.post("Debugger.resume");
+    console.log("Executing continue command...");
+    this.session.post("Debugger.resume", (err, response) => {
+      if (err) {
+        console.error("Failed to execute Debugger.resume command:", err);
+      } else {
+        console.log("Successfully executed Debugger.resume command.", response);
+        // response对象通常包含了执行结果的详细信息，具体内容取决于调试器和命令本身
+      }
+    });
   }
 
   stepOver() {
@@ -101,7 +195,7 @@ const startWebSocketServer = (server) => {
 
     socket.on("init", async (data) => {
       const { code, breakpoints } = data;
-      console.log(code, breakpoints);
+      // console.log(code, breakpoints);
       await debugSession.initializeDebugSession(code.content, breakpoints);
     });
 
@@ -111,6 +205,7 @@ const startWebSocketServer = (server) => {
       if (session) {
         switch (command) {
           case "continue":
+            console.log("continue");
             session.continue();
             break;
           case "stepOver":
