@@ -26,8 +26,25 @@ class DebugSession {
     this.symbolTable = {};
     this.varNames = [];
 
-    this.socket.on("disconnect", () => {
+    this.socket.on("disconnect", async () => {
       console.log("Client disconnected");
+      for (const varName of this.varNames) {
+        await new Promise((resolve, reject) => {
+          this.session.post(
+            "Runtime.evaluate",
+            { expression: `${varName} = null;` },
+            (err, result) => {
+              if (err) {
+                console.error(`Failed to reset ${varName}:`, err);
+                reject(err); // 处理错误
+              } else {
+                console.log(`${varName} reset to null`);
+                resolve(); // 正确解析
+              }
+            }
+          );
+        }).catch((err) => console.error(err));
+      }
       this.session.disconnect();
     });
 
