@@ -23,6 +23,8 @@ class DebugSession {
     this.scriptId = null;
     this.compiledJSCode = null;
     this.lineMapping = {};
+    this.symbolTable = {};
+    this.varNames = [];
 
     this.socket.on("disconnect", () => {
       console.log("Client disconnected");
@@ -56,31 +58,23 @@ class DebugSession {
               }
             );
 
-            for (const property of properties) {
-              // 这里只收集了简单的变量，复杂类型可以进一步处理
-              if (property.value && property.name) {
-                variables.push({
-                  name: property.name,
-                  value: property.value.value || property.value.description,
-                });
-              }
-            }
+            // 过滤并收集指定变量
+            variables = properties
+              .filter((property) => this.varNames.includes(property.name))
+              .map((property) => ({
+                name: property.name,
+                value: property.value.value || property.value.description,
+              }));
           } catch (err) {
             console.error("Failed to get properties:", err);
           }
         }
       }
-      // 使用逆向映射找到对应的PL/0行号
-      // const pl0Line = Object.keys(this.lineMapping).find(
-      //   (key) => this.lineMapping[key] === jsLine
-      // );
 
       // 现在你有了PL/0行号，可以将其发送给前端
       socket.emit("paused", {
         variables,
         pl0Line: pl0Line, // 发送PL/0行号
-        // variables: result.variables,
-        // 你可以在这里添加其他需要的调试信息
       });
       // this.session.post("Debugger.pause", (err, res) => {
       //   if (err) {
@@ -103,12 +97,15 @@ class DebugSession {
     );
     this.compiledJSCode = this.compiledJSCode + readWriteMethods;
     this.lineMapping = generateLineMapping(code, this.compiledJSCode);
-
+    this.symbolTable = await compilerModel.performSemanticAnalysis(code);
+    this.varNames = extractVariableNames(this.symbolTable);
+    // console.log(this.symbolTable);
     this.session.post("Debugger.enable");
     this.session.post("Runtime.enable");
 
     // 先编译脚本
     this.compileScript(() => {
+      console.log(21);
       // 设置好所有断点后再执行脚本
       this.setBreakpoints(breakpoints, () => {
         this.runScript();
@@ -281,4 +278,15 @@ function findClosestJsLine(pl0Line, lineMapping) {
     return closestLine ? lineMapping[closestLine] : null;
   }
 }
+function extractVariableNames(symbolTable) {
+  let variableNames = [];
+  for (const [key, value] of Object.entries(symbolTable)) {
+    if (value.type === "VarDeclaration" || value.type === "ConstDeclaration") {
+      variableNames.push(key);
+    }
+    // 如果还有嵌套的符号表，可以在这里递归调用extractVariableNames
+  }
+  return variableNames;
+}
+
 module.exports = startWebSocketServer;
