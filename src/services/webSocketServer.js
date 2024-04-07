@@ -2,13 +2,12 @@
 const socketIo = require("socket.io");
 const compilerModel = require("../models/compilerModel");
 const inspector = require("inspector");
-// const cors = require("@koa/cors");
-// const session = new inspector.Session();
-// session.connect();
+
+// 声明read和write方法
 const readWriteMethods = `
 function read(varName) {
   // 假定为每个读取操作返回2
-  global[varName] = 2;
+  varname = 2;
 }
 
 function write(value) {
@@ -212,7 +211,7 @@ class DebugSession {
     this.session.post("Debugger.stepOver");
   }
 }
-
+// 启动webSocket
 const startWebSocketServer = (server) => {
   const io = socketIo(server, {
     cors: {
@@ -262,7 +261,7 @@ const startWebSocketServer = (server) => {
 
   console.log("WebSocket server started.");
 };
-
+// 建立pl0代码和js的映射关系
 function generateLineMapping(pl0Code, jsCode) {
   const jsLines = jsCode.split("\n");
   const mapping = {};
@@ -279,6 +278,7 @@ function generateLineMapping(pl0Code, jsCode) {
 
   return mapping;
 }
+// 用于找到离当前节点最近的存在映射关系的js点
 function findClosestJsLine(pl0Line, lineMapping) {
   if (lineMapping[pl0Line]) {
     return lineMapping[pl0Line];
@@ -295,13 +295,13 @@ function findClosestJsLine(pl0Line, lineMapping) {
     return closestLine ? lineMapping[closestLine] : null;
   }
 }
+// 用于提取符号表的变量和常量
 function extractVariableNames(symbolTable) {
   let variableNames = [];
   for (const [key, value] of Object.entries(symbolTable)) {
     if (value.type === "VarDeclaration" || value.type === "ConstDeclaration") {
       variableNames.push(key);
     }
-    // 如果还有嵌套的符号表，可以在这里递归调用extractVariableNames
   }
   return variableNames;
 }
