@@ -26,7 +26,7 @@ class DebugSession {
     this.varNames = [];
 
     this.socket.on("disconnect", async () => {
-      console.log("Client disconnected");
+      // console.log("和客户端连接");
       for (const varName of this.varNames) {
         await new Promise((resolve, reject) => {
           this.session.post(
@@ -34,10 +34,10 @@ class DebugSession {
             { expression: `${varName} = null;` },
             (err, result) => {
               if (err) {
-                console.error(`Failed to reset ${varName}:`, err);
+                console.error(`重置变量 ${varName}:失败，`, err);
                 reject(err); // 处理错误
               } else {
-                console.log(`${varName} reset to null`);
+                // console.log(`${varName}变量成功重置`);
                 resolve(); // 正确解析
               }
             }
@@ -82,7 +82,7 @@ class DebugSession {
                 value: property.value.value || property.value.description,
               }));
           } catch (err) {
-            console.error("Failed to get properties:", err);
+            console.error("收集变量异常:", err);
           }
         }
       }
@@ -121,7 +121,7 @@ class DebugSession {
 
     // 先编译脚本
     this.compileScript(() => {
-      console.log(21);
+      // console.log(21);
       // 设置好所有断点后再执行脚本
       this.setBreakpoints(breakpoints, () => {
         this.runScript();
@@ -139,7 +139,7 @@ class DebugSession {
       },
       (err, res) => {
         if (err) {
-          console.error("Compile script failed:", err);
+          console.error("编译脚本异常:", err);
           return;
         }
         this.scriptId = res.scriptId;
@@ -165,9 +165,9 @@ class DebugSession {
           },
           (err, response) => {
             if (err) {
-              console.error("Failed to set breakpoint:", err);
+              console.error("设置断点失败:", err);
             } else {
-              console.log("Breakpoint set successfully, response:", response);
+              // console.log("Breakpoint set successfully, response:", response);
             }
             breakpointsSet++;
             // 确保所有断点都设置完成后再回调
@@ -187,21 +187,21 @@ class DebugSession {
       { scriptId: this.scriptId },
       (err, res) => {
         if (err) {
-          console.error("Run script failed:", err);
+          console.error("执行脚本失败:", err);
         } else {
-          console.log("Script executed successfully, response:", res);
+          // console.log("Script executed successfully, response:", res);
         }
       }
     );
   }
 
   continue() {
-    console.log("Executing continue command...");
+    // console.log("Executing continue command...");
     this.session.post("Debugger.resume", (err, response) => {
       if (err) {
-        console.error("Failed to execute Debugger.resume command:", err);
+        console.error("执行恢复执行指令失败:", err);
       } else {
-        console.log("Successfully executed Debugger.resume command.", response);
+        console.log("成功执行恢复指令.", response);
         // response对象通常包含了执行结果的详细信息，具体内容取决于调试器和命令本身
       }
     });
@@ -226,7 +226,7 @@ const startWebSocketServer = (server) => {
   const debugSessions = new Map();
 
   io.on("connection", (socket) => {
-    console.log("Socket.io client connected");
+    console.log("客户端调试模式已连接");
 
     const debugSession = new DebugSession(socket);
     debugSessions.set(socket.id, debugSession);
@@ -243,7 +243,7 @@ const startWebSocketServer = (server) => {
       if (session) {
         switch (command) {
           case "continue":
-            console.log("continue");
+            // console.log("continue");
             session.continue();
             break;
           case "stepOver":
@@ -255,11 +255,11 @@ const startWebSocketServer = (server) => {
 
     socket.on("disconnect", () => {
       debugSessions.delete(socket.id);
-      console.log("Socket disconnected and session removed.");
+      console.log("调试连接已断开.");
     });
   });
 
-  console.log("WebSocket server started.");
+  console.log("webSocket服务已开启.");
 };
 // 建立pl0代码和js的映射关系
 function generateLineMapping(pl0Code, jsCode) {
