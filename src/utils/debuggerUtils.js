@@ -1,12 +1,13 @@
+// WASM的调试功能（只适用于简单情况）
 class Debugger {
   constructor() {
     this.breakpoints = new Set(); // 存储断点的行号
     this.sourceMap = {}; // 源代码映射表
     this.symbolTable = {}; // 从语义分析器获取的符号表
     this.currentLine = 0; // 当前执行到的代码行
-    this.stack = [];
-    this.intermediateCode = [];
-    this.procedures = {};
+    this.stack = []; // 变量栈
+    this.intermediateCode = []; // 中间代码
+    this.procedures = {}; //函数信息
   }
   // 初始化符号表
   loadSymbolTable(symbolTable) {

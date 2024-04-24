@@ -161,6 +161,7 @@ const syntaxAnalyzer = {
         this.match("Identifier");
         this.match("Equals", ":=");
         const expressionNode = this.expression();
+        this.match("Semicolon");
         statementNode = {
           type: "AssignmentStatement",
           identifier,
@@ -359,7 +360,9 @@ const syntaxAnalyzer = {
       this.match("Operator", ")"); // 匹配右括号
       return node;
     }
-    throw new Error(`Unexpected token: ${this.currentToken.value}`);
+    throw new Error(
+      `Unexpected token: ${this.currentToken.value},line is ${this.currentToken.line}`
+    );
   },
 
   ifStatement() {
@@ -475,8 +478,8 @@ const syntaxAnalyzer = {
         this.currentToken.type === "Semicolon" &&
         this.currentToken.value === ";"
       ) {
-        // this.match('Semicolon'); // Match semicolon
-        this.advance();
+        this.match("Semicolon"); // Match semicolon
+        // this.advance();
       }
     }
     this.match("Keyword", "end"); // Match 'end'

@@ -17,6 +17,7 @@ const intermediateCodeGenerator = {
   generateCodeFromNode(node, intermediateCode) {
     if (!node) return;
     // 递归处理ast节点
+    // DFS
     switch (node.type) {
       case "Program":
       case "Block":

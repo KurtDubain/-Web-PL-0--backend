@@ -14,14 +14,14 @@ function write(value) {
 `;
 class DebugSession {
   constructor(socket) {
-    this.socket = socket;
+    this.socket = socket; // 初始化webSocket链接
     this.session = new inspector.Session(); // 将session实例化移到构造函数内部
     this.session.connect();
     this.scriptId = null;
-    this.compiledJSCode = null;
-    this.lineMapping = {};
-    this.symbolTable = {};
-    this.varNames = [];
+    this.compiledJSCode = null; //JS目标代码
+    this.lineMapping = {}; // 行号映射表
+    this.symbolTable = {}; // 符号表
+    this.varNames = []; // 处理过后的符号表（变量信息）
 
     this.socket.on("disconnect", async () => {
       // console.log("和客户端连接");
@@ -44,7 +44,7 @@ class DebugSession {
       }
       this.session.disconnect();
     });
-
+    // 断点触发的回调事件
     this.session.on("Debugger.paused", async (message) => {
       const { params } = message;
       const currentCallFrame = params.callFrames[0];
@@ -85,7 +85,7 @@ class DebugSession {
                   name: property.name,
                   value: property.value.value || property.value.description,
                   type: varInfo ? varInfo.type : undefined,
-                  scope: "Global",
+                  scope: "Global", // 目前全部是全局变量
                 };
               });
           } catch (err) {
@@ -94,7 +94,7 @@ class DebugSession {
         }
       }
 
-      // 现在你有了PL/0行号，可以将其发送给前端
+      // 现在有了PL/0行号，可以将其发送给前端
       socket.emit("paused", {
         variables,
         pl0Line: pl0Line, // 发送PL/0行号
@@ -107,13 +107,12 @@ class DebugSession {
       //   }
       // });
     });
-
     this.session.on("Debugger.scriptParsed", (message) => {
       const { params } = message;
       this.scriptId = params.scriptId; // 保存scriptId用于后续的断点设置
     });
   }
-
+  // 初始化功能
   async initializeDebugSession(code, breakpoints) {
     this.compiledJSCode = await compilerModel.performTargetJSCodeGeneration(
       code
@@ -135,7 +134,7 @@ class DebugSession {
       });
     });
   }
-
+  // 编译处理
   compileScript(callback) {
     this.session.post(
       "Runtime.compileScript",
@@ -154,9 +153,10 @@ class DebugSession {
       }
     );
   }
-
+  // 编译通过后，设置断点
   setBreakpoints(breakpoints, callback) {
     let breakpointsSet = 0;
+    // 根据映射关系设置断点
     breakpoints.forEach((pl0Line) => {
       const jsLine =
         this.lineMapping[pl0Line] ||
@@ -186,7 +186,7 @@ class DebugSession {
       }
     });
   }
-
+  // 设置断点之后，执行代码
   runScript() {
     // 这里只有在设置完断点后才执行脚本
     this.session.post(
@@ -201,7 +201,7 @@ class DebugSession {
       }
     );
   }
-
+  // 继续执行
   continue() {
     // console.log("Executing continue command...");
     this.session.post("Debugger.resume", (err, response) => {
@@ -213,7 +213,7 @@ class DebugSession {
       }
     });
   }
-
+  // 单步执行
   stepOver() {
     this.session.post("Debugger.stepOver");
   }
