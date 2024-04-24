@@ -18,10 +18,12 @@ const syntaxAnalyzer = {
       // 如果提供了expectedValue，则还需要匹配token的具体值
       if (expectedValue !== null && this.currentToken.value !== expectedValue) {
         throw new Error(
-          `Expected token value ${expectedValue}, but found ${this.currentToken.value}`
+          `Expected token value ${expectedValue}, but found ${
+            this.currentToken.value
+          },line is ${this.currentToken.line - 1}`
         );
       }
-      console.log(this.currentToken);
+      // console.log(this.currentToken);
       this.advance();
     } else {
       // 抛出错误时，包含更多关于期望和实际的信息
@@ -30,7 +32,9 @@ const syntaxAnalyzer = {
       throw new Error(
         `Expected token type ${expectedType}${
           expectedValue ? " with value " + expectedValue : ""
-        }, but found type ${foundType} with value ${foundValue}`
+        }, but found type ${foundType} with value ${foundValue},line is ${
+          this.currentToken.line - 1
+        }`
       );
     }
   },
