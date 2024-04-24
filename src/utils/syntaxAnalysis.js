@@ -21,7 +21,7 @@ const syntaxAnalyzer = {
           `Expected token value ${expectedValue}, but found ${this.currentToken.value}`
         );
       }
-      // console.log(this.currentToken);
+      console.log(this.currentToken);
       this.advance();
     } else {
       // 抛出错误时，包含更多关于期望和实际的信息
@@ -412,7 +412,7 @@ const syntaxAnalyzer = {
         }
       }
     }
-    this.match("Keyword", "end");
+    this.match("Keyword", "endif");
     this.match("Semicolon");
     return {
       type: "IfStatement",
@@ -429,7 +429,10 @@ const syntaxAnalyzer = {
     const condition = this.expression();
     const line = this.currentToken.line;
     this.match("Keyword", "do");
-    const doStatement = this.statement();
+    const doStatement = this.beginEndStatement();
+    this.match("Semicolon", ";");
+    this.match("Keyword", "endwhile");
+    this.match("Semicolon", ";");
     return {
       type: "WhileStatement",
       condition,
@@ -502,7 +505,7 @@ const syntaxAnalyzer = {
     }
 
     // ;
-    this.match("Keyword", "end");
+    this.match("Keyword", "endfor");
     this.match("Semicolon", ";");
     return {
       type: "ForStatement",

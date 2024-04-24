@@ -21,6 +21,9 @@ const lexAnalyzer = {
       "write",
       "for",
       "to",
+      "endif",
+      "endfor",
+      "endwhile",
     ];
     // 将分号、逗号、句号从operators移除，单独处理
     const operators = ["+", "-", "*", "/", "=", "<", "<=", ">", ">="];
