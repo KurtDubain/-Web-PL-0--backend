@@ -59,7 +59,8 @@ const jsTargetCodeGenerator = {
           if (operand2 === "START") {
             this.functionsCode += `function ${operand1}() {//${line}\n`;
           } else {
-            this.functionsCode += `}//${line}\n`;
+            // this.functionsCode += `}//${line}\n`;
+            this.functionsCode += `}\n`;
           }
           break;
         case "IF":
@@ -121,7 +122,9 @@ const jsTargetCodeGenerator = {
       case "ELSE":
         return `} else {//${line}\n`;
       case "ENDIF":
-        return `}//${line}\n`;
+        // return `}//${line}\n`;
+        return `}\n`;
+
       default:
         return "// Unhandled condition\n";
     }
@@ -136,7 +139,8 @@ const jsTargetCodeGenerator = {
         // DO logic here if your intermediate code requires it
         return `${result}){//${line}\n`;
       case "ENDWHILE":
-        return `}//${line}\n`;
+        return `}\n`;
+      // return `}//${line}\n`;
       case "FOR":
         if (operand2 === "INIT") {
           return `for (${operand1} = 0;${operand1} < `;
@@ -146,7 +150,9 @@ const jsTargetCodeGenerator = {
       // Assuming FOR loop structure is defined in your intermediate code
       // return `for (let ${operand1} = 0; ${operand1} < ${operand2}; ${operand1}++) {\n`;
       case "ENDFOR":
-        return `}//${line}\n`;
+        // return `}//${line}\n`;
+        return `}\n`;
+
       default:
         return "// Unhandled loop\n";
     }
