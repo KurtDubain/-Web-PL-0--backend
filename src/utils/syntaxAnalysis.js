@@ -119,8 +119,17 @@ const syntaxAnalyzer = {
           const varName = this.currentToken.value;
           const varLine = this.currentToken.line;
           this.match("Identifier");
+          let varValue = undefined; // 默认不赋值
+
+          // 检查是否有赋值操作符
+          if (this.currentToken.type === "Equals") {
+            this.match("Equals");
+            varValue = parseInt(this.currentToken.value, 10); // 假设值是整数
+            this.match("Number");
+          }
           declarations.push({
             type: "VarDeclaration",
+            value: varValue,
             name: varName,
             line: varLine,
           });

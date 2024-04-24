@@ -75,29 +75,39 @@ const semanticAnalyzer = {
       if (this.symbolTable[name]) {
         throw new Error(`Variable ${name} is already declared.`);
       }
-      this.symbolTable[name] = { type: decl.type, value: null }; // 声明变量，默认值为null
+      // console.log(decl.type);
+      this.symbolTable[name] = {
+        type: decl.type, // Variable or Const
+        value: decl.value,
+        isConst: decl.type === "ConstDeclaration", // 假设节点有一个kind属性标记是否为常量
+      };
     });
   },
   // 过程声明
   processProcedureDeclaration(node) {
     const name = node.name;
     if (this.symbolTable[name]) {
-      throw new Error(`Procedure ${name} is already declared.`);
+      throw new Error(`Procedure '${name}' is already declared.`);
     }
     this.symbolTable[name] = {
       type: "Procedure",
-      parameters: [],
+      parameters: node.parameters,
       body: node.body,
     };
-    // 这里可以递归分析过程体，以处理局部变量等
+    // 可以递归处理过程体中的声明，确保局部作用域被正确处理
+    this.analyze(node.body);
   },
 
   processAssignmentStatement(node) {
     const name = node.identifier;
     if (!this.symbolTable[name]) {
-      throw new Error(`Variable ${name} is not declared.`);
+      throw new Error(`Variable '${name}' is not declared.`);
     }
-    // 这里可以对赋值表达式进行分析，暂略
+    if (this.symbolTable[name].isConst) {
+      throw new Error(`Cannot assign to const variable '${name}'.`);
+    }
+    const value = this.evaluateExpression(node.expression);
+    this.symbolTable[name].value = value; // 更新变量的值
   },
   // 过程调用
   processProcedureCall(node) {
@@ -163,6 +173,53 @@ const semanticAnalyzer = {
         this.processBinaryExpression(expression);
         break;
       // 处理其他表达式类型...
+    }
+  },
+  // 计算表达式的值
+  evaluateExpression(expression) {
+    switch (expression.type) {
+      case "Literal":
+        return expression.value;
+      case "Identifier":
+        const variable = this.symbolTable[expression.name];
+        if (!variable) {
+          throw new Error(`Variable ${expression.name} is not declared.`);
+        }
+        return variable.value;
+      case "BinaryExpression":
+        const left = this.evaluateExpression(expression.left);
+        const right = this.evaluateExpression(expression.right);
+        return this.applyOperator(expression.operator, left, right);
+      default:
+        throw new Error(`Unsupported expression type: ${expression.type}`);
+    }
+  },
+
+  // 根据操作符计算二元表达式的结果
+  applyOperator(operator, left, right) {
+    switch (operator) {
+      case "+":
+        return left + right;
+      case "-":
+        return left - right;
+      case "*":
+        return left * right;
+      case "/":
+        return left / right; // 注意除以零的处理
+      case "<":
+        return left < right;
+      case "<=":
+        return left <= right;
+      case ">":
+        return left > right;
+      case ">=":
+        return left >= right;
+      case "==":
+        return left == right; // 确保使用正确的比较
+      case "!=":
+        return left != right;
+      default:
+        throw new Error(`Unsupported operator: ${operator}`);
     }
   },
 };
