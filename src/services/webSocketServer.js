@@ -27,14 +27,14 @@ class DebugSession {
 
     this.socket.on("disconnect", async () => {
       // console.log("和客户端连接");
-      for (const varName of this.varNames) {
+      for (const key of this.varNames) {
         await new Promise((resolve, reject) => {
           this.session.post(
             "Runtime.evaluate",
-            { expression: `${varName} = null;` },
+            { expression: `${key.varName} = null;` },
             (err, result) => {
               if (err) {
-                console.error(`重置变量 ${varName}:失败，`, err);
+                console.error(`重置变量 ${key.varName}:失败，`, err);
                 reject(err); // 处理错误
               } else {
                 // console.log(`${varName}变量成功重置`);
@@ -76,11 +76,20 @@ class DebugSession {
 
             // 过滤并收集指定变量
             variables = properties
-              .filter((property) => this.varNames.includes(property.name))
-              .map((property) => ({
-                name: property.name,
-                value: property.value.value || property.value.description,
-              }));
+              .filter((property) =>
+                this.varNames.some((v) => v.varName === property.name)
+              )
+              .map((property) => {
+                const varInfo = this.varNames.find(
+                  (v) => v.varName === property.name
+                );
+                return {
+                  name: property.name,
+                  value: property.value.value || property.value.description,
+                  type: varInfo ? varInfo.type : undefined,
+                  scope: "Global",
+                };
+              });
           } catch (err) {
             console.error("收集变量异常:", err);
           }
@@ -300,7 +309,13 @@ function extractVariableNames(symbolTable) {
   let variableNames = [];
   for (const [key, value] of Object.entries(symbolTable)) {
     if (value.type === "VarDeclaration" || value.type === "ConstDeclaration") {
-      variableNames.push(key);
+      variableNames.push({
+        varName: key,
+        type:
+          value.type === "VarDeclaration"
+            ? "VarDeclaration"
+            : "ConstDeclaration",
+      });
     }
   }
   return variableNames;
