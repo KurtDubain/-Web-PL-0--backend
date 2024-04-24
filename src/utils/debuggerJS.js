@@ -1,78 +1,272 @@
-const vm = require("vm");
-const EventEmitter = require("events");
+const compilerModel = require("../models/compilerModel");
+const inspector = require("inspector");
 
-class DebugSession extends EventEmitter {
+// 声明read和write方法
+const readWriteMethods = `
+function read(varName) {
+  // 假定为每个读取操作返回2
+  varname = 2;
+}
+
+function write(value) {
+  console.log(value);
+}
+`;
+class DebugSession {
   constructor(socket) {
-    super();
     this.socket = socket;
-    this.breakpoints = []; // 存储断点信息
-    this.currentLine = 0; // 当前执行到的代码行数
-    this.vmContext = vm.createContext({
-      console: console,
-      debug: this.debug.bind(this), // 在VM上下文中绑定debug函数
+    this.session = new inspector.Session(); // 将session实例化移到构造函数内部
+    this.session.connect();
+    this.scriptId = null;
+    this.compiledJSCode = null;
+    this.lineMapping = {};
+    this.symbolTable = {};
+    this.varNames = [];
+
+    this.socket.on("disconnect", async () => {
+      // console.log("和客户端连接");
+      for (const key of this.varNames) {
+        await new Promise((resolve, reject) => {
+          this.session.post(
+            "Runtime.evaluate",
+            { expression: `${key.varName} = null;` },
+            (err, result) => {
+              if (err) {
+                console.error(`重置变量 ${key.varName}:失败，`, err);
+                reject(err); // 处理错误
+              } else {
+                // console.log(`${varName}变量成功重置`);
+                resolve(); // 正确解析
+              }
+            }
+          );
+        }).catch((err) => console.error(err));
+      }
+      this.session.disconnect();
     });
-    this.loadVariablesIntoContext();
-  }
 
-  // 初始化调试会话，插入debug函数到断点位置
-  initializeDebugSession(code, breakpoints) {
-    this.breakpoints = breakpoints.sort((a, b) => a - b); // 确保断点按行号排序
-    let lines = code.split("\n"); // 分割代码为行数组
+    this.session.on("Debugger.paused", async (message) => {
+      const { params } = message;
+      const currentCallFrame = params.callFrames[0];
+      const jsLine = currentCallFrame.location.lineNumber + 1; // 从0开始计数，所以+1得到实际的行号
+      // 找到PL/0对应的行号
+      const pl0Line = Object.keys(this.lineMapping).find(
+        (key) => this.lineMapping[key] === jsLine
+      );
 
-    // 插入debug函数
-    this.breakpoints.forEach((breakpoint) => {
-      let index = breakpoint - 1; // 转换行号为数组索引
-      lines.splice(index, 0, `debug(${breakpoint});`);
+      // 收集作用域内的所有变量
+      let variables = [];
+      for (const scope of currentCallFrame.scopeChain) {
+        if (scope.object) {
+          try {
+            const { result: properties } = await new Promise(
+              (resolve, reject) => {
+                this.session.post(
+                  "Runtime.getProperties",
+                  { objectId: scope.object.objectId },
+                  (err, result) => {
+                    if (err) reject(err);
+                    else resolve(result);
+                  }
+                );
+              }
+            );
+
+            // 过滤并收集指定变量
+            variables = properties
+              .filter((property) =>
+                this.varNames.some((v) => v.varName === property.name)
+              )
+              .map((property) => {
+                const varInfo = this.varNames.find(
+                  (v) => v.varName === property.name
+                );
+                return {
+                  name: property.name,
+                  value: property.value.value || property.value.description,
+                  type: varInfo ? varInfo.type : undefined,
+                  scope: "Global",
+                };
+              });
+          } catch (err) {
+            console.error("收集变量异常:", err);
+          }
+        }
+      }
+
+      // 现在你有了PL/0行号，可以将其发送给前端
+      socket.emit("paused", {
+        variables,
+        pl0Line: pl0Line, // 发送PL/0行号
+      });
+      // this.session.post("Debugger.pause", (err, res) => {
+      //   if (err) {
+      //     console.error("Failed to pause:", err);
+      //   } else {
+      //     console.log("Paused successfully", res);
+      //   }
+      // });
     });
 
-    let modifiedCode = lines.join("\n");
-    this.execute(modifiedCode);
-  }
-  loadVariablesIntoContext() {
-    // 将所有变量初始化到 VM 上下文中
-    this.variableNames.forEach((varName) => {
-      this.vmContext[varName] = undefined;
+    this.session.on("Debugger.scriptParsed", (message) => {
+      const { params } = message;
+      this.scriptId = params.scriptId; // 保存scriptId用于后续的断点设置
     });
   }
 
-  // debug函数，用于在VM中断点处调用
-  debug(line) {
-    if (this.breakpoints.includes(line)) {
-      this.currentLine = line;
-      // 捕获所有变量的值
-      const variableValues = this.variableNames.reduce((acc, varName) => {
-        acc[varName] = this.vmContext[varName];
-        return acc;
-      }, {});
+  async initializeDebugSession(code, breakpoints) {
+    this.compiledJSCode = await compilerModel.performTargetJSCodeGeneration(
+      code
+    );
+    this.compiledJSCode = this.compiledJSCode + readWriteMethods;
+    this.lineMapping = generateLineMapping(code, this.compiledJSCode);
+    this.symbolTable = await compilerModel.performSemanticAnalysis(code);
+    this.varNames = extractVariableNames(this.symbolTable);
+    // console.log(this.symbolTable);
+    this.session.post("Debugger.enable");
+    this.session.post("Runtime.enable");
 
-      // 向客户端发送断点和变量信息
-      this.socket.emit("debugBreak", { line, variableValues });
-    }
+    // 先编译脚本
+    this.compileScript(() => {
+      // console.log(21);
+      // 设置好所有断点后再执行脚本
+      this.setBreakpoints(breakpoints, () => {
+        this.runScript();
+      });
+    });
   }
 
-  // 执行处理后的代码
-  execute(code) {
-    try {
-      vm.runInContext(code, this.vmContext);
-      // 代码执行完毕后通知客户端
-      this.socket.emit("executionFinished");
-    } catch (err) {
-      // 错误处理，通知客户端执行出错
-      this.socket.emit("executionError", { message: err.message });
-    }
+  compileScript(callback) {
+    this.session.post(
+      "Runtime.compileScript",
+      {
+        expression: this.compiledJSCode,
+        sourceURL: "input.js",
+        persistScript: true,
+      },
+      (err, res) => {
+        if (err) {
+          console.error("编译脚本异常:", err);
+          return;
+        }
+        this.scriptId = res.scriptId;
+        if (callback) callback();
+      }
+    );
   }
 
-  // 单步执行
-  stepOver() {
-    // 在当前行后插入一次debug调用，并执行代码
-    // 注意：这需要你能够动态修改正在执行的代码，或者以其他方式实现单步执行的效果
+  setBreakpoints(breakpoints, callback) {
+    let breakpointsSet = 0;
+    breakpoints.forEach((pl0Line) => {
+      const jsLine =
+        this.lineMapping[pl0Line] ||
+        findClosestJsLine(pl0Line, this.lineMapping);
+      if (jsLine) {
+        this.session.post(
+          "Debugger.setBreakpoint",
+          {
+            location: {
+              scriptId: this.scriptId,
+              lineNumber: jsLine - 1,
+            },
+          },
+          (err, response) => {
+            if (err) {
+              console.error("设置断点失败:", err);
+            } else {
+              // console.log("Breakpoint set successfully, response:", response);
+            }
+            breakpointsSet++;
+            // 确保所有断点都设置完成后再回调
+            if (breakpointsSet === breakpoints.length && callback) {
+              callback();
+            }
+          }
+        );
+      }
+    });
   }
 
-  // 继续执行到下一个断点
+  runScript() {
+    // 这里只有在设置完断点后才执行脚本
+    this.session.post(
+      "Runtime.runScript",
+      { scriptId: this.scriptId },
+      (err, res) => {
+        if (err) {
+          console.error("执行脚本失败:", err);
+        } else {
+          // console.log("Script executed successfully, response:", res);
+        }
+      }
+    );
+  }
+
   continue() {
-    // 从当前行继续执行，直到遇到下一个断点
-    // 类似于stepOver，这需要特殊处理以支持动态执行控制
+    // console.log("Executing continue command...");
+    this.session.post("Debugger.resume", (err, response) => {
+      if (err) {
+        console.error("执行恢复执行指令失败:", err);
+      } else {
+        console.log("成功执行恢复指令.", response);
+        // response对象通常包含了执行结果的详细信息，具体内容取决于调试器和命令本身
+      }
+    });
+  }
+
+  stepOver() {
+    this.session.post("Debugger.stepOver");
   }
 }
 
+// 建立pl0代码和js的映射关系
+function generateLineMapping(pl0Code, jsCode) {
+  const jsLines = jsCode.split("\n");
+  const mapping = {};
+
+  jsLines.forEach((line, index) => {
+    if (line.includes("//")) {
+      const commentPart = line.split("//")[1].trim();
+      const pl0LineNumber = parseInt(commentPart, 10);
+      if (!isNaN(pl0LineNumber)) {
+        mapping[pl0LineNumber] = index + 1;
+      }
+    }
+  });
+
+  return mapping;
+}
+// 用于找到离当前节点最近的存在映射关系的js点
+function findClosestJsLine(pl0Line, lineMapping) {
+  if (lineMapping[pl0Line]) {
+    return lineMapping[pl0Line];
+  } else {
+    // 如果直接找不到，寻找最近的前一个有效行
+    let closestLine = null;
+    Object.keys(lineMapping).forEach((mappedLine) => {
+      const mappedLineInt = parseInt(mappedLine, 10);
+      if (mappedLineInt < pl0Line) {
+        closestLine = mappedLineInt;
+      }
+    });
+
+    return closestLine ? lineMapping[closestLine] : null;
+  }
+}
+// 用于提取符号表的变量和常量
+function extractVariableNames(symbolTable) {
+  let variableNames = [];
+  for (const [key, value] of Object.entries(symbolTable)) {
+    if (value.type === "VarDeclaration" || value.type === "ConstDeclaration") {
+      variableNames.push({
+        varName: key,
+        type:
+          value.type === "VarDeclaration"
+            ? "VarDeclaration"
+            : "ConstDeclaration",
+      });
+    }
+  }
+  return variableNames;
+}
 module.exports = DebugSession;
