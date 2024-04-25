@@ -95,7 +95,7 @@ const semanticAnalyzer = {
       body: node.body,
     };
     // 可以递归处理过程体中的声明，确保局部作用域被正确处理
-    this.analyze(node.body);
+    // this.analyze(node.body);
   },
 
   processAssignmentStatement(node) {
