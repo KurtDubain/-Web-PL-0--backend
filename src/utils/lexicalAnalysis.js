@@ -4,6 +4,7 @@ const lexAnalyzer = {
     const tokens = [];
     let currentToken = "";
     let currentLine = 1;
+    let isComment = false;
     // 对关键词的定义
     const keywords = [
       "const",
@@ -45,8 +46,15 @@ const lexAnalyzer = {
       const nextChar = code[i + 1];
       if (char === "\n") {
         currentLine++;
+        isComment = false;
       }
-
+      if (isComment) {
+        continue;
+      }
+      if (char === "/" && nextChar === "/") {
+        isComment = true;
+        continue;
+      }
       if (isWhitespace(char)) {
         if (currentToken !== "") {
           // 如果当前有正在构建的token，则根据其内容确定类型并添加
