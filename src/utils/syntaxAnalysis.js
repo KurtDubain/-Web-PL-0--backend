@@ -365,8 +365,10 @@ const syntaxAnalyzer = {
       return node;
     } else if (this.currentToken.value === "(") {
       this.match("Operator", "("); // 匹配左括号
+      // console.log("222");
       let node = this.expression(); // 解析括号内的表达式
       this.match("Operator", ")"); // 匹配右括号
+      // console.log(node);
       return node;
     }
     throw new Error(

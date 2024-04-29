@@ -27,7 +27,7 @@ const lexAnalyzer = {
       "endwhile",
     ];
     // 将分号、逗号、句号从operators移除，单独处理
-    const operators = ["+", "-", "*", "/", "=", "<", "<=", ">", ">="];
+    const operators = ["+", "-", "*", "/", "=", "<", "<=", ">", ">=", "(", ")"];
     const equals = [":="]; // 特殊符号：分号、逗号、句号
     // 空格
     const isWhitespace = (char) => /\s/.test(char);
@@ -111,7 +111,8 @@ const lexAnalyzer = {
         i++;
         addToken("Equals", ":=");
       } else if (char === "(" || char === ")") {
-        addToken("Parenthesis", char); // 'Parenthesis'是一个新的Token类型
+        // addToken("Parenthesis", char); // 'Parenthesis'是一个新的Token类型
+        addToken("Operator", char);
       } else {
         if (currentToken !== "") {
           addToken("Identifier", currentToken);
