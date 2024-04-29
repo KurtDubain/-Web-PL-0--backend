@@ -1,6 +1,7 @@
 // 词法分析
 const lexAnalyzer = {
   analyze: function (code) {
+    code = code.toLowerCase();
     const tokens = [];
     let currentToken = "";
     let currentLine = 1;
