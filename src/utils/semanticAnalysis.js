@@ -57,6 +57,7 @@ const semanticAnalyzer = {
         break;
       default:
         console.warn(`Unhandled node type: ${node.type}`);
+        throw new Error(`语义分析异常，请执行语法分析排查是否存在语法错误`);
     }
   },
   processChildren(node) {

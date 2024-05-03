@@ -84,7 +84,10 @@ const compilerModel = {
       const syntaxTree = await this.performSyntaxAnalysis(code);
       const intermediateCode =
         intermediateCodeGenerator.generateIntermediateCode(syntaxTree);
-      return intermediateCode;
+      // console.log(intermediateCode === []);
+      // console.log(syntaxTree);
+      console.log(intermediateCode.length == 0 ? syntaxTree : intermediateCode);
+      return intermediateCode.length == 0 ? syntaxTree : intermediateCode;
     } catch (error) {
       console.error(`中间代码生成出错了: ${error.message}`);
       return `中间代码生成错误: ${error.message}`;
@@ -98,7 +101,9 @@ const compilerModel = {
         code
       );
       const targetCode = generateTargetCode.generateWAT(intermediateCode);
-      return targetCode;
+      return intermediateCode.length == 0
+        ? "目标代码生成异常，请排查语法错误"
+        : targetCode;
     } catch (error) {
       console.error(`目标代码生成出错了: ${error.message}`);
       return `目标代码生成错误: ${error.message}`;
@@ -110,7 +115,9 @@ const compilerModel = {
       const intermediateCode =
         intermediateCodeGenerator.generateIntermediateCodeWithLine(ast);
       const targetCode = jsGenterator.generateJS(intermediateCode);
-      return targetCode;
+      return intermediateCode.length == 0
+        ? "目标代码生成异常，请排查语法错误"
+        : targetCode;
     } catch (error) {
       console.error(`目标代码生成出错了: ${error.message}`);
       return `目标代码生成错误: ${error.message}`;

@@ -18,9 +18,7 @@ const syntaxAnalyzer = {
       // 如果提供了expectedValue，则还需要匹配token的具体值
       if (expectedValue !== null && this.currentToken.value !== expectedValue) {
         throw new Error(
-          `Expected token value ${expectedValue}, but found ${
-            this.currentToken.value
-          },line is ${this.currentToken.line - 1}`
+          `Expected token value ${expectedValue}, but found ${this.currentToken.value},line is ${this.currentToken.line}`
         );
       }
       // console.log(this.currentToken);
@@ -33,7 +31,7 @@ const syntaxAnalyzer = {
         `Expected token type ${expectedType}${
           expectedValue ? " with value " + expectedValue : ""
         }, but found type ${foundType} with value ${foundValue},line is ${
-          this.currentToken.line - 1
+          this.currentToken.line
         }`
       );
     }
@@ -208,7 +206,7 @@ const syntaxAnalyzer = {
         // Add other control structures here
         default:
           throw new Error(
-            `Unsupported statement with keyword ${this.currentToken.value}`
+            `Unsupported statement with keyword ${this.currentToken.value},line is ${this.currentToken.line}`
           );
       }
     }
