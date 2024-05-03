@@ -78,7 +78,7 @@ const semanticAnalyzer = {
       }
       // console.log(decl.type);
       this.symbolTable[name] = {
-        type: decl.type, // Variable or Const
+        type: decl.type, // Variable 或者 Const
         value: decl.value,
         isConst: decl.type === "ConstDeclaration", // 假设节点有一个kind属性标记是否为常量
       };
@@ -173,7 +173,6 @@ const semanticAnalyzer = {
       case "BinaryExpression":
         this.processBinaryExpression(expression);
         break;
-      // 处理其他表达式类型...
     }
   },
   // 计算表达式的值

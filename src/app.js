@@ -12,7 +12,7 @@ const debuggerRoutes = require("./routes/debugger");
 const app = new Koa();
 const router = new Router();
 
-// 中间件
+// 中间件（跨域和POST请求体解析）
 app.use(cors());
 app.use(bodyParser());
 // 路由

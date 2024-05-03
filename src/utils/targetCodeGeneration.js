@@ -186,7 +186,7 @@ const targetCodeGenerator = {
       this.procedureCode[this.currentProcedure].push(codeLine);
     }
   },
-
+  // 条件句处理
   handleCondition(operation, operand1, operand2, procedureCode) {
     // 使用栈来追踪嵌套的if-else结构
     if (!this.conditionStack) {
@@ -235,7 +235,7 @@ const targetCodeGenerator = {
         break;
     }
   },
-
+  // 循环体处理
   handleLoop(operation, operand1, operand2, procedureCode) {
     let labelInfo;
     // console.log(operand);

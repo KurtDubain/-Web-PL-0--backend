@@ -122,7 +122,6 @@ class Debugger {
       case "<=":
       case ">=":
       case "<>":
-        // 根据实际需要处理比较运算
         break;
       default:
         console.warn("Unknown operator:", operator);

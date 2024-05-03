@@ -1,10 +1,12 @@
 // 词法分析
 const lexAnalyzer = {
   analyze: function (code) {
+    // 不区分大小写
     code = code.toLowerCase();
     const tokens = [];
     let currentToken = "";
     let currentLine = 1;
+    // 注释检测
     let isComment = false;
     // 对关键词的定义
     const keywords = [
@@ -49,6 +51,7 @@ const lexAnalyzer = {
         currentLine++;
         isComment = false;
       }
+      // 对注释进行忽略
       if (isComment) {
         continue;
       }

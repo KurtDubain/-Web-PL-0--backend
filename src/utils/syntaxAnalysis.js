@@ -1,6 +1,5 @@
 // 语法分析
 // 语法分析器对象
-// 语法分析器对象
 const syntaxAnalyzer = {
   tokens: [], // 用于存储每个token
   currentTokenIndex: 0, //当前位置

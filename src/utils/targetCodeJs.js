@@ -1,9 +1,10 @@
+// JS模式下的目标代码生成器
 const jsTargetCodeGenerator = {
   labelCounter: 0,
   loopLabelsStack: [],
   variableDeclarations: new Set(),
-  varStack: [],
-  functionsCode: "",
+  varStack: [], // 变量栈
+  functionsCode: "", // 目标产物
 
   generateLabel() {
     return `label_${this.labelCounter++}`;
@@ -94,7 +95,7 @@ const jsTargetCodeGenerator = {
 
     return jsCode + this.functionsCode;
   },
-
+  // 运算处理
   handleOperation(operation, left, right) {
     const operatorMappings = {
       "+": `${left} + ${right}`,
@@ -110,7 +111,7 @@ const jsTargetCodeGenerator = {
     // console.log(operatorMappings);
     return operatorMappings[operation];
   },
-
+  // 条件语句的处理
   handleCondition(operation, operand1, operand2, line) {
     switch (operation) {
       case "IF":
@@ -129,7 +130,7 @@ const jsTargetCodeGenerator = {
         return "// Unhandled condition\n";
     }
   },
-
+  // 循环语句处理
   handleLoop(operation, operand1, operand2, line) {
     switch (operation) {
       case "WHILE":
