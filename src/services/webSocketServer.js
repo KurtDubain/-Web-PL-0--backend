@@ -1,11 +1,13 @@
 // src/websocketService.js
+// webSocket服务
 const socketIo = require("socket.io");
 const DebugSession = require("../utils/debuggerJS");
 // 启动webSocket
 const startWebSocketServer = (server) => {
   const io = socketIo(server, {
     cors: {
-      origin: "http://localhost:8080",
+      // origin: "http://localhost:8080",
+      origin: "https://www.dyp02.vip:8443",
       methods: ["GET", "POST"],
       allowedHeaders: ["my-custom-header"],
       credentials: true,
@@ -26,7 +28,7 @@ const startWebSocketServer = (server) => {
       // console.log(code, breakpoints);
       await debugSession.initializeDebugSession(code.content, breakpoints);
     });
-
+    // 接受调试命令
     socket.on("debugCommand", (data) => {
       const { command } = data;
       const session = debugSessions.get(socket.id);
