@@ -72,7 +72,7 @@ class DebugSession {
                 );
               }
             );
-
+            // console.log(properties);
             // 过滤并收集指定变量
             variables = properties
               .filter((property) =>
@@ -82,6 +82,7 @@ class DebugSession {
                 const varInfo = this.varNames.find(
                   (v) => v.varName === property.name
                 );
+                // console.log(property);
                 return {
                   name: property.name,
                   value: property.value.value || property.value.description,
@@ -268,6 +269,7 @@ function extractVariableNames(symbolTable) {
       });
     }
   }
+  // console.log(variableNames);
   return variableNames;
 }
 module.exports = DebugSession;

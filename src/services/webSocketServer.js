@@ -6,13 +6,13 @@ const DebugSession = require("../utils/debuggerJS");
 const startWebSocketServer = (server) => {
   const io = socketIo(server, {
     cors: {
-      // origin: "http://localhost:8080",
-      origin: "https://www.dyp02.vip:8443",
+      origin: "http://localhost:8080",
+      // origin: "https://www.dyp02.vip:8443",
       methods: ["GET", "POST"],
       allowedHeaders: ["my-custom-header"],
       credentials: true,
     },
-    pingInterval: 1000, // 每10秒发送一次心跳包
+    pingInterval: 100000, // 每10秒发送一次心跳包
     pingTimeout: 500,
   });
   const debugSessions = new Map();

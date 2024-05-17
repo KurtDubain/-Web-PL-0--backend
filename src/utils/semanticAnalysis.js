@@ -139,8 +139,8 @@ const semanticAnalyzer = {
 
   processForStatement(node) {
     // 分析初始化、结束条件和循环体
-    this.processNode(node.initialValue);
-    this.processNode(node.finalValue);
+    // this.processNode(node.initialValue);
+    // this.processNode(node.finalValue);
     this.processNode(node.body);
   },
   processReadStatement(node) {
