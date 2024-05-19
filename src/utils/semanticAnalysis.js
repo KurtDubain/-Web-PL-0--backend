@@ -179,11 +179,17 @@ const semanticAnalyzer = {
   evaluateExpression(expression) {
     switch (expression.type) {
       case "Literal":
+        if (typeof expression.value === "string" && !isNaN(expression.value)) {
+          return parseInt(expression.value, 10);
+        }
         return expression.value;
       case "Identifier":
         const variable = this.symbolTable[expression.name];
         if (!variable) {
           throw new Error(`Variable ${expression.name} is not declared.`);
+        }
+        if (typeof variable.value === "string" && !isNaN(variable.value)) {
+          return parseInt(variable.value, 10);
         }
         return variable.value;
       case "BinaryExpression":
@@ -205,7 +211,10 @@ const semanticAnalyzer = {
       case "*":
         return left * right;
       case "/":
-        return left / right; // 注意除以零的处理
+        if (right === 0) {
+          throw new Error("Division by zero error");
+        }
+        return left / right;
       case "<":
         return left < right;
       case "<=":
