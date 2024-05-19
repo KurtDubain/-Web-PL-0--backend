@@ -6,8 +6,8 @@ const DebugSession = require("../utils/debuggerJS");
 const startWebSocketServer = (server) => {
   const io = socketIo(server, {
     cors: {
-      origin: "http://localhost:8080",
-      // origin: "https://www.dyp02.vip:8443",
+      // origin: "http://localhost:8080",
+      origin: "https://www.dyp02.vip:8443",
       methods: ["GET", "POST"],
       allowedHeaders: ["my-custom-header"],
       credentials: true,
