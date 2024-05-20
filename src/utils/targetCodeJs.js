@@ -32,7 +32,9 @@ const jsTargetCodeGenerator = {
           break;
         case "STORE":
           const valueToStore = this.varStack.pop();
-          this.functionsCode += `  ${operand1} = ${valueToStore};//${line}\n`;
+          this.functionsCode += `  ${operand1} = ${valueToStore};//${
+            line - 1
+          }\n`;
           break;
         case "PUSH":
           this.varStack.push(operand1);
@@ -121,7 +123,7 @@ const jsTargetCodeGenerator = {
         const conditionElseIf = this.varStack.pop();
         return `} else if (${conditionElseIf}) {//${line}\n`;
       case "ELSE":
-        return `} else {//${line}\n`;
+        return `} else {//${line - 1}\n`;
       case "ENDIF":
         // return `}//${line}\n`;
         return `}\n`;
