@@ -146,7 +146,7 @@ const jsTargetCodeGenerator = {
       // return `}//${line}\n`;
       case "FOR":
         if (operand2 === "INIT") {
-          return `for (${operand1} = 0;${operand1} < `;
+          return `for (${operand1} = ${this.varStack.pop()};${operand1} < `;
         } else if (operand2 === "TO") {
           return `${this.varStack.pop()};${operand1}++){//${line}\n`;
         }
