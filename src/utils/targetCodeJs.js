@@ -107,6 +107,9 @@ const jsTargetCodeGenerator = {
       ">": `${left} > ${right}`,
       "<": `${left} < ${right}`,
       "=": `${left} == ${right}`,
+      ">=": `${left}>=${right}`,
+      "<=": `${left}<=${right}`,
+      "<>": `${left}!=${right}`,
       // Add more operators as needed
     };
     // console.log(operation);
