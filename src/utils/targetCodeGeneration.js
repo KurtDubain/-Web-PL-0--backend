@@ -22,7 +22,7 @@ const targetCodeGenerator = {
     let globalVars = new Set();
 
     intermediateCode.forEach((instruction) => {
-      let [operation, operand1, operand2] = instruction.split(" ");
+      let [operation, operand1, operand2, operand3] = instruction.split(" ");
       let codeLine = "";
 
       switch (operation) {
@@ -48,7 +48,7 @@ const targetCodeGenerator = {
             localVars.add(operand1);
           }
           if (operation === "CONST") {
-            procedureCode[currentProcedure].push(`    (i32.const ${operand2})`);
+            procedureCode[currentProcedure].push(`    (i32.const ${operand3})`);
             procedureCode[currentProcedure].push(
               `    (global.set $${operand1})`
             );

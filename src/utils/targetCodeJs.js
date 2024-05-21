@@ -16,7 +16,7 @@ const jsTargetCodeGenerator = {
 
     intermediateCode.forEach((instruction) => {
       const { code, line } = instruction;
-      const [operation, operand1, operand2] = code.split(" ");
+      const [operation, operand1, operand2, operand3] = code.split(" ");
       switch (operation) {
         case "DECLARE":
           //   if (!this.variableDeclarations.has(operand1)) {
@@ -25,7 +25,7 @@ const jsTargetCodeGenerator = {
           //   }
           break;
         case "CONST":
-          jsCode += `var ${operand1} = ${operand2};//${line}\n`;
+          jsCode += `var ${operand1} = ${operand3};//${line}\n`;
           break;
         case "LOAD":
           this.varStack.push(operand1);
